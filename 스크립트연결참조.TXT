@@ -1,0 +1,52 @@
+# 스크립트 연결 참조
+
+## 1. 핵심 시스템 (Core Systems)
+
+### `Core.Ticks.TickManager`
+- **역할**: 게임의 전반적인 틱(시간 단위)을 관리하는 싱글턴 클래스. 모든 시간 기반 로직의 기준점.
+- **주요 설정**:
+    - `ticksPerSecond`: 1초당 틱 발생 횟수. (기본값: 10)
+- **연결**:
+    - `Core.Ticks.ITickListener`를 구현한 모든 객체는 `RegisterListener`를 통해 `TickManager`에 등록하여 틱 이벤트를 수신해야 함.
+- **위치**: `Assets/Scripts/Core/TickManager.cs`
+
+### `Core.Ticks.ITickListener`
+- **역할**: `TickManager`로부터 틱 이벤트를 수신하기 위한 인터페이스.
+- **주요 메서드**:
+    - `OnTick(long tick)`: 매 틱마다 호출되는 메서드.
+- **구현 대상**: 전투 캐릭터, 버프/디버프 효과 등 시간의 흐름에 따라 동작해야 하는 모든 객체.
+- **위치**: `Assets/Scripts/Core/ITickListener.cs`
+
+### `Core.Logging` (로깅 시스템)
+- **역할**: 게임 전역의 로그를 중앙에서 관리하고, 일관된 형식으로 출력. 확장성을 위해 인터페이스 기반으로 설계됨.
+- **주요 클래스 및 인터페이스**:
+    - `GameLogger`: 로그 기록을 위한 정적 클래스. 게임의 모든 곳에서 `GameLogger.Log()` 형태로 호출.
+    - `ILogger`: 로그 출력 방식(콘솔, 파일 등)을 정의하는 인터페이스.
+    - `UnityConsoleLogger`: `ILogger`를 구현하여 유니티 콘솔에 로그를 출력하는 기본 로거.
+- **사용법**:
+    - 일반 로그: `GameLogger.Log("메시지");`
+    - 경고 로그: `GameLogger.LogWarning("메시지");`
+    - 에러 로그: `GameLogger.LogError("메시지", exception);`
+- **위치**: `Assets/Scripts/Core/Logging/`
+
+## 2. 캐릭터 시스템 (Character Systems)
+
+### `Character.StatType` (enum)
+- **역할**: 캐릭터가 가질 수 있는 모든 스탯의 종류를 정의.
+- **특징**:
+    - 스탯을 기본, 생존, 공격, 속성 등으로 분류하여 관리.
+    - 각 스탯은 고유한 정수 값을 가짐.
+    - **결정론적 데이터 원칙**: 모든 스탯 값은 정수로 관리. 비율(%) 등은 1000을 곱한 정수로 저장.
+- **의존성**:
+    - `Character.CharacterStats`에서 스탯을 관리하기 위한 키로 사용됨.
+    - `CombatCalculator`에서 피해량 계산 시 참조될 예정.
+- **위치**: `Assets/Scripts/StatType.cs`
+
+### `Character.CharacterStats`
+- **역할**: 캐릭터의 모든 스탯(기본 스탯, 버프/디버프로 인한 변화량 등)을 종합하여 최종 스탯을 관리하고 계산.
+- **주요 기능**:
+    - `GetStat(StatType type)`: 특정 스탯의 최종 값을 조회.
+- **연결**:
+    - `StatType` enum을 사용하여 스탯을 구분.
+    - `StatModifier` 구조체를 사용하여 스탯 변화량을 관리.
+- **위치**: `Assets/Scripts/CharacterStats.cs`
