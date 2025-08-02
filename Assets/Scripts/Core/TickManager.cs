@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Core.Logging;
 using UnityEngine;
 
 namespace Core.Ticks
@@ -18,7 +19,12 @@ namespace Core.Ticks
         private float _tickTimer;
         private float _tickInterval;
 
-        private readonly List<ITickListener> _listeners = new List<ITickListener>();
+        // HashSet을 사용하여 리스너를 관리합니다. 중복을 허용하지 않으며, 추가/제거/검색 성능이 평균 O(1)입니다.
+        private readonly HashSet<ITickListener> _listeners = new HashSet<ITickListener>();
+        
+        // Update 루프 중에 리스너가 제거되는 경우를 안전하게 처리하기 위한 임시 리스트
+        private readonly List<ITickListener> _listenersToRemove = new List<ITickListener>();
+        private bool _isIterating;
 
         private void Awake()
         {
@@ -41,10 +47,21 @@ namespace Core.Ticks
                 _tickTimer -= _tickInterval;
                 _currentTick++;
                 
-                // 역순으로 순회하여 리스너가 OnTick 내부에서 스스로를 제거하더라도 안전합니다.
-                for (int i = _listeners.Count - 1; i >= 0; i--)
+                _isIterating = true;
+                foreach (var listener in _listeners)
                 {
-                    _listeners[i].OnTick(_currentTick);
+                    listener.OnTick(_currentTick);
+                }
+                _isIterating = false;
+
+                // 순회가 끝난 후, 제거 목록에 있던 리스너들을 일괄 제거합니다.
+                if (_listenersToRemove.Count > 0)
+                {
+                    foreach (var listener in _listenersToRemove)
+                    {
+                        _listeners.Remove(listener);
+                    }
+                    _listenersToRemove.Clear();
                 }
             }
         }
@@ -54,18 +71,35 @@ namespace Core.Ticks
         /// </summary>
         public void RegisterListener(ITickListener listener)
         {
-            if (!_listeners.Contains(listener))
+            if (listener == null) return;
+            // HashSet의 Add 메서드는 이미 요소가 존재하면 false를 반환하고 추가하지 않습니다.
+            if (_listeners.Add(listener))
             {
-                _listeners.Add(listener);
+                GameLogger.Log($"Registered tick listener: {listener.GetType().Name}", (listener is MonoBehaviour mb) ? mb : null);
             }
         }
 
         /// <summary>
-        /// 틱 이벤트 수신을 중단할 리스너를 제거합니다. Remove는 내부적으로 탐색 후 제거하므로 효율적입니다.
+        /// 틱 이벤트 수신을 중단할 리스너를 제거합니다.
         /// </summary>
         public void UnregisterListener(ITickListener listener)
         {
-            _listeners.Remove(listener);
+            if (listener == null) return;
+            
+            // 순회 중에 제거가 요청되면, 임시 목록에 추가해두고 나중에 처리합니다.
+            if (_isIterating)
+            {
+                if (_listeners.Contains(listener) && !_listenersToRemove.Contains(listener))
+                {
+                    _listenersToRemove.Add(listener);
+                }
+                return;
+            }
+
+            if (_listeners.Remove(listener))
+            {
+                 GameLogger.Log($"Unregistered tick listener: {listener.GetType().Name}", (listener is MonoBehaviour mb) ? mb : null);
+            }
         }
 
         /// <summary>

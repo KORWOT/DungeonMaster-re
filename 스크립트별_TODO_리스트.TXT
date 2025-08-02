@@ -6,19 +6,14 @@
 ## 1. 관리자 시스템 (Managers)
 
 ### `Managers.GameFlowManager`
-- [ ] **참조 추가**: `EnemySpawner`, `RewardManager` 등 필요한 모든 관리자 컴포넌트의 참조 변수를 추가하고 인스펙터에서 연결해야 합니다.
 - [ ] **상태별 로직 구현**: `ChangeState` 메서드 내의 각 `case`문에 실제 동작 코드를 구체화해야 합니다.
     - `Placement`: `placementManager.ShowPlacementUI()`를 호출하여 UI를 활성화하고, 플레이어의 카드 목록을 전달해야 합니다.
     - `Combat`: 배치된 몬스터 정보를 바탕으로 `CharacterFactory`를 통해 캐릭터들을 생성하고, `EnemySpawner.StartSpawning()`을 호출하여 적 웨이브를 시작해야 합니다.
     - `Result`: 전투 결과를 기반으로 `RewardManager`의 보상 지급 메서드를 호출해야 합니다.
 
 ### `Managers.RewardManager`
-- [ ] **보상 테이블 SO**: 보상 내용을 하드코딩하는 대신, `ScriptableObject` (예: `RewardTable.asset`)로 만들어 관리해야 합니다. 이를 통해 기획자가 쉽게 보상을 조절할 수 있습니다.
-- [ ] **차등 보상 로직**: 스테이지 난이도, 클리어한 웨이브 수 등에 따라 보상이 달라지는 구체적인 로직을 구현해야 합니다.
-- [ ] **아이템/카드 보상**: 재화 외에 카드나 특별 아이템을 보상으로 지급하는 시스템을 구현해야 합니다.
-
-### `Managers.SaveLoadManager`
-- [ ] **키 보안 강화**: 현재 하드코딩된 암호화 키(`_encryptionKey`)를 보다 안전한 방법(예: 별도 파일, 서버 등)으로 관리하도록 개선해야 합니다.
+- [ ] **차등 보상 로직**: 스테이지 난이도, 클리어한 웨이브 수 등에 따라 보상이 달라지는 구체적인 로직을 `RewardTable`을 기반으로 구현해야 합니다.
+- [ ] **아이템/카드 보상**: `RewardTable`에 카드나 아이템 드랍 테이블을 추가하고, 이를 기반으로 재화 외의 보상을 지급하는 시스템을 구현해야 합니다.
 
 ---
 

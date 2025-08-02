@@ -9,19 +9,33 @@ namespace Managers
 {
     /// <summary>
     /// 게임 데이터의 저장 및 로드를 담당하는 클래스입니다.
+    /// 데이터는 AES 암호화를 거쳐 파일에 저장됩니다.
     /// </summary>
     public class SaveLoadManager
     {
         private readonly string _savePath;
-        private readonly string _encryptionKey = "ThisIsASecretKeyForEncryption123"; // TODO: 실제 프로젝트에서는 더 안전한 키 관리 방법 사용
+        private readonly byte[] _encryptionKey;
+
+        private const string Salt = "DungeonMasterSaltString"; // 키 유도를 위한 고정 솔트 값
 
         public SaveLoadManager()
         {
-            _savePath = Path.Combine(Application.persistentDataPath, "playerdata.json");
+            _savePath = Path.Combine(Application.persistentDataPath, "playerdata.sav"); // 확장자 변경
+            
+            // 기기 고유 ID와 솔트를 조합하여 암호화 키를 동적으로 생성합니다.
+            // 이렇게 하면 기기마다 다른 키를 사용하게 되어 보안이 강화됩니다.
+            string combinedKey = SystemInfo.deviceUniqueIdentifier + Salt;
+            
+            // PBKDF2 알고리즘을 사용하여 해시 기반으로 키를 파생시킵니다.
+            // 32바이트(256비트) 키를 생성합니다.
+            using (var rfc2898 = new Rfc2898DeriveBytes(combinedKey, Encoding.UTF8.GetBytes(Salt), 10000, HashAlgorithmName.SHA256))
+            {
+                _encryptionKey = rfc2898.GetBytes(32); 
+            }
         }
 
         /// <summary>
-        /// PlayerData를 파일에 저장합니다.
+        /// PlayerData를 암호화하여 파일에 저장합니다.
         /// </summary>
         /// <param name="playerData">저장할 플레이어 데이터</param>
         public void SaveData(PlayerData playerData)
@@ -40,9 +54,9 @@ namespace Managers
         }
 
         /// <summary>
-        /// 파일에서 PlayerData를 불러옵니다.
+        /// 파일에서 PlayerData를 복호화하여 불러옵니다.
         /// </summary>
-        /// <returns>불러온 플레이어 데이터. 파일이 없으면 null을 반환합니다.</returns>
+        /// <returns>불러온 플레이어 데이터. 파일이 없거나 오류 발생 시 null을 반환합니다.</returns>
         public PlayerData LoadData()
         {
             if (!File.Exists(_savePath))
@@ -62,58 +76,54 @@ namespace Managers
             catch (System.Exception e)
             {
                 GameLogger.LogError("데이터 로드 중 오류 발생. 새 데이터를 생성합니다.", e);
+                File.Delete(_savePath); // 손상된 파일일 수 있으므로 삭제
                 return null;
             }
         }
         
-        // --- 간단한 AES 암호화/복호화 ---
+        // --- AES-256-CBC 암호화/복호화 ---
         private string Encrypt(string plainText)
         {
-            byte[] iv = new byte[16];
-            byte[] array;
-
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
-                aes.IV = iv;
+                aes.Key = _encryptionKey;
+                aes.GenerateIV(); // 매번 새로운 IV(초기화 벡터)를 생성하여 보안 강화
+                var iv = aes.IV;
 
-                ICryptoTransform encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-
-                using (MemoryStream memoryStream = new MemoryStream())
+                using (var encryptor = aes.CreateEncryptor(aes.Key, iv))
+                using (var memoryStream = new MemoryStream())
                 {
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                    // IV를 암호화된 데이터 앞에 붙여서 저장합니다.
+                    memoryStream.Write(iv, 0, iv.Length);
+                    using (var cryptoStream = new CryptoStream(memoryStream, encryptor, CryptoStreamMode.Write))
+                    using (var streamWriter = new StreamWriter(cryptoStream))
                     {
-                        using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
-                        {
-                            streamWriter.Write(plainText);
-                        }
-                        array = memoryStream.ToArray();
+                        streamWriter.Write(plainText);
                     }
+                    return System.Convert.ToBase64String(memoryStream.ToArray());
                 }
             }
-            return System.Convert.ToBase64String(array);
         }
 
         private string Decrypt(string cipherText)
         {
-            byte[] iv = new byte[16];
-            byte[] buffer = System.Convert.FromBase64String(cipherText);
+            var fullCipher = System.Convert.FromBase64String(cipherText);
 
             using (Aes aes = Aes.Create())
             {
-                aes.Key = Encoding.UTF8.GetBytes(_encryptionKey);
+                aes.Key = _encryptionKey;
+                
+                // 데이터 앞부분에서 IV를 다시 읽어옵니다.
+                var iv = new byte[aes.BlockSize / 8];
+                System.Buffer.BlockCopy(fullCipher, 0, iv, 0, iv.Length);
                 aes.IV = iv;
-                ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
 
-                using (MemoryStream memoryStream = new MemoryStream(buffer))
+                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+                using (var memoryStream = new MemoryStream(fullCipher, iv.Length, fullCipher.Length - iv.Length))
+                using (var cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                using (var streamReader = new StreamReader(cryptoStream))
                 {
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (StreamReader streamReader = new StreamReader(cryptoStream))
-                        {
-                            return streamReader.ReadToEnd();
-                        }
-                    }
+                    return streamReader.ReadToEnd();
                 }
             }
         }

@@ -1,4 +1,6 @@
+using Combat;
 using Core.Logging;
+using Data;
 using Dungeon;
 using Factories;
 using UnityEngine;
@@ -23,11 +25,20 @@ namespace Managers
 
         public GameState CurrentState { get; private set; }
 
-        // --- 참조 컴포넌트들 ---
+        // --- 참조 컴포넌트 (인스펙터에서 할당) ---
+        [Header("Component References")]
         [SerializeField] private DungeonGrid dungeonGrid;
         [SerializeField] private MonsterPlacementManager placementManager;
         [SerializeField] private CharacterFactory characterFactory;
-        // TODO: EnemySpawner, RewardManager 등 다른 매니저 참조 추가
+        [SerializeField] private EnemySpawner enemySpawner;
+
+        [Header("Data Assets (Resources 폴더)")]
+        [Tooltip("사용할 보상 테이블 파일의 이름")]
+        [SerializeField] private string rewardTableName = "DefaultRewardTable";
+        
+        // --- 내부 관리 클래스 (직접 생성) ---
+        public RewardManager RewardManager { get; private set; }
+        public SaveLoadManager SaveLoadManager { get; private set; }
 
         private void Awake()
         {
@@ -38,6 +49,20 @@ namespace Managers
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            
+            // 데이터 에셋 로드
+            var rewardTable = Resources.Load<RewardTable>(rewardTableName);
+            if (rewardTable == null)
+            {
+                GameLogger.LogError($"RewardTable '{rewardTableName}'을 Resources 폴더에서 찾을 수 없습니다!");
+            }
+
+            // MonoBehaviour가 아닌 매니저들은 직접 생성합니다.
+            RewardManager = new RewardManager(rewardTable);
+            SaveLoadManager = new SaveLoadManager();
+            
+            // 다른 컴포넌트 초기화
+            enemySpawner.Initialize(dungeonGrid);
         }
 
         private void Start()
@@ -69,9 +94,11 @@ namespace Managers
                 case GameState.Combat:
                     // 배치된 몬스터로 캐릭터 생성 (CharacterFactory 사용)
                     // 적 스폰 시작 (EnemySpawner 사용)
+                    // enemySpawner.StartSpawning(...);
                     break;
                 case GameState.Result:
                     // 전투 중단, 결과 UI 표시, 보상 처리 (RewardManager 사용)
+                    // RewardManager.GrantVictoryRewards(...);
                     break;
                 case GameState.Paused:
                     // 게임 일시정지 (GameTimeManager 사용)

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using Character;
+using Core.Logging;
 using Core.Time;
 using UnityEngine;
 
@@ -22,13 +24,19 @@ namespace Combat.Buffs
             _characterStats = GetComponent<CharacterStats>();
             if (_characterStats == null)
             {
-                Core.Logging.GameLogger.LogError($"CharacterStats 컴포넌트를 찾을 수 없습니다!", null, this);
+                GameLogger.LogError($"CharacterStats 컴포넌트를 찾을 수 없습니다!", null, this);
                 enabled = false;
             }
         }
 
         private void Update()
         {
+            // GameTimeManager 인스턴스가 없는 경우(예: 테스트 씬) 오류를 방지하기 위해 null 체크
+            if (GameTimeManager.Instance == null)
+            {
+                return;
+            }
+            
             // 게임 시간을 기준으로 각 버프의 남은 시간을 갱신합니다.
             float deltaTime = GameTimeManager.Instance.GameDeltaTime;
             
@@ -45,14 +53,37 @@ namespace Combat.Buffs
 
         /// <summary>
         /// 캐릭터에게 새로운 버프를 적용합니다.
+        /// 중첩 규칙(StackingType)에 따라 다르게 동작합니다.
         /// </summary>
         /// <param name="buffData">적용할 버프의 ScriptableObject</param>
         public void AddBuff(Buff buffData)
         {
+            // 중복 허용이 아닌 경우, 먼저 동일한 버프가 있는지 확인합니다.
+            if (buffData.StackingType != BuffStackingType.AllowDuplicate)
+            {
+                var existingBuff = _activeBuffs.FirstOrDefault(b => b.BuffData.BuffId == buffData.BuffId);
+                if (existingBuff != null)
+                {
+                    // 기존 버프가 있다면 규칙에 따라 처리
+                    switch (buffData.StackingType)
+                    {
+                        case BuffStackingType.RefreshDuration:
+                            existingBuff.RefreshDuration();
+                            GameLogger.Log($"{buffData.BuffName} 버프의 지속시간을 갱신합니다.", this);
+                            return; // 새 버프를 추가하지 않고 종료
+                        
+                        case BuffStackingType.Ignore:
+                            GameLogger.Log($"{buffData.BuffName} 버프는 이미 적용되어 있어 무시합니다.", this);
+                            return; // 새 버프를 추가하지 않고 종료
+                    }
+                }
+            }
+            
+            // 새 버프를 추가합니다.
             var newBuff = new ActiveBuff(buffData, _characterStats);
             _activeBuffs.Add(newBuff);
             
-            Core.Logging.GameLogger.Log($"{buffData.BuffName} 버프가 적용되었습니다.", this);
+            GameLogger.Log($"{buffData.BuffName} 버프가 적용되었습니다.", this);
         }
 
         private void RemoveBuff(int index)
@@ -61,7 +92,7 @@ namespace Combat.Buffs
             buffToRemove.End(); // 버프 종료 로직 호출 (스탯 모디파이어 제거 등)
             _activeBuffs.RemoveAt(index);
             
-            Core.Logging.GameLogger.Log($"{buffToRemove.BuffData.BuffName} 버프가 만료되었습니다.", this);
+            GameLogger.Log($"{buffToRemove.BuffData.BuffName} 버프가 만료되었습니다.", this);
         }
     }
 
@@ -81,16 +112,23 @@ namespace Combat.Buffs
             BuffData = buffData;
             _ownerStats = ownerStats;
             
+            RefreshDuration();
+            ApplyEffects();
+        }
+
+        /// <summary>
+        /// 버프의 지속 시간을 초기값으로 재설정합니다.
+        /// </summary>
+        public void RefreshDuration()
+        {
             RemainingTime = BuffData.Duration;
             // 지속시간이 0 이하이면 영구 버프로 간주
             if (RemainingTime <= 0)
             {
                 RemainingTime = float.MaxValue;
             }
-            
-            ApplyEffects();
         }
-
+        
         /// <summary>
         /// 매 프레임 호출되어 버프의 남은 시간을 갱신합니다.
         /// </summary>
@@ -108,9 +146,11 @@ namespace Combat.Buffs
         /// </summary>
         private void ApplyEffects()
         {
+            // 이전에 적용된 같은 종류의 버프 효과가 있다면 제거 후 적용해야 하지만,
+            // 현재 구조에서는 Source(ActiveBuff 인스턴스)가 다르므로 괜찮습니다.
+            // 만약 source를 공유해야 한다면 다른 방식이 필요합니다.
             foreach (var modifierData in BuffData.StatModifiers)
             {
-                // ActiveBuff 인스턴스 자신을 Source로 전달하여 나중에 쉽게 제거할 수 있도록 함
                 var modifierInstance = new StatModifier(modifierData.StatType, modifierData.Value, modifierData.Type, this);
                 _ownerStats.AddModifier(modifierInstance);
             }
