@@ -4,18 +4,19 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-/// <summary>
-/// ScriptableObject 기반 데이터의 밸런싱 툴을 만들기 위한 제네릭 에디터 윈도우 추상 클래스입니다.
-/// </summary>
-/// <typeparam name="T">편집할 ScriptableObject의 타입</typeparam>
 public abstract class BalanceEditorWindow<T> : EditorWindow where T : ScriptableObject
 {
     protected List<T> allItems;
     private Vector2 _scrollPosition;
     
-    // 정렬 관련 변수
+    private string _searchQuery = "";
     protected string _currentSortKey;
     protected bool _isAscending = true;
+    
+    /// <summary>
+    /// 파생 클래스에서 새 에셋을 저장할 기본 경로를 지정해야 합니다. (예: "Assets/Data/Buffs")
+    /// </summary>
+    protected abstract string GetNewAssetPath();
 
     protected virtual void OnEnable()
     {
@@ -36,7 +37,6 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
             }
         }
         
-        // 초기 정렬 (이름순)
         _currentSortKey = "Name";
         SortItems();
     }
@@ -45,45 +45,98 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
     {
         GUILayout.Label($"{typeof(T).Name} Balance Sheet", EditorStyles.boldLabel);
 
-        if (GUILayout.Button($"Reload All {typeof(T).Name}s"))
+        // --- 상단 툴바 ---
+        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
+        _searchQuery = EditorGUILayout.TextField(_searchQuery, GUI.skin.FindStyle("ToolbarSeachTextField"), GUILayout.MaxWidth(250));
+        if (GUILayout.Button("", GUI.skin.FindStyle("ToolbarSeachCancelButton")))
+        {
+            _searchQuery = "";
+            GUI.FocusControl(null);
+        }
+
+        GUILayout.FlexibleSpace();
+
+        if (GUILayout.Button("Create New", EditorStyles.toolbarButton))
+        {
+            CreateNewAsset();
+        }
+
+        if (GUILayout.Button("Reload All", EditorStyles.toolbarButton))
         {
             LoadAllAssets();
         }
-
+        EditorGUILayout.EndHorizontal();
+        
         EditorGUILayout.Space();
 
         _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
-        // 헤더 그리기
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
         DrawHeader();
         EditorGUILayout.EndHorizontal();
         
-        // 데이터 행 그리기
-        if (allItems != null)
-        {
-            foreach (T item in allItems)
-            {
-                EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-                EditorGUI.BeginChangeCheck();
-                DrawRow(item);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    EditorUtility.SetDirty(item);
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-        }
+        DrawRows();
 
         EditorGUILayout.EndScrollView();
     }
     
-    /// <summary>
-    /// 클릭 가능한 정렬 헤더를 그립니다.
-    /// </summary>
-    /// <param name="title">헤더에 표시될 이름</param>
-    /// <param name="key">이 헤더의 정렬 기준 키</param>
-    /// <param name="options">레이아웃 옵션</param>
+    private void CreateNewAsset()
+    {
+        T newAsset = CreateInstance<T>();
+        string path = GetNewAssetPath();
+
+        // 폴더가 없으면 생성
+        if (!AssetDatabase.IsValidFolder(path))
+        {
+            // "Assets"를 기준으로 하위 폴더 경로를 만듭니다.
+            string parentFolder = "Assets";
+            string[] folders = path.Split('/');
+            // 첫번째(Assets)는 건너뛰고 시작
+            for(int i = 1; i < folders.Length; i++)
+            {
+                string currentPath = parentFolder + "/" + folders[i];
+                if (!AssetDatabase.IsValidFolder(currentPath))
+                {
+                    AssetDatabase.CreateFolder(parentFolder, folders[i]);
+                }
+                parentFolder = currentPath;
+            }
+        }
+        
+        // 중복되지 않는 파일 경로 생성
+        string assetPathAndName = AssetDatabase.GenerateUniqueAssetPath($"{path}/New {typeof(T).Name}.asset");
+
+        AssetDatabase.CreateAsset(newAsset, assetPathAndName);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        
+        // 생성된 에셋을 선택하고, 목록을 새로고침
+        EditorUtility.FocusProjectWindow();
+        Selection.activeObject = newAsset;
+        LoadAllAssets();
+    }
+
+    private void DrawRows()
+    {
+        if (allItems == null) return;
+        
+        var filteredItems = string.IsNullOrEmpty(_searchQuery)
+            ? allItems
+            : allItems.Where(item => item.name.IndexOf(_searchQuery, StringComparison.OrdinalIgnoreCase) >= 0);
+
+        foreach (T item in filteredItems)
+        {
+            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            EditorGUI.BeginChangeCheck();
+            DrawRow(item);
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorUtility.SetDirty(item);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+    
     protected void DrawSortableHeader(string title, string key, params GUILayoutOption[] options)
     {
         string arrow = "";
@@ -110,29 +163,14 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
     private void SortItems()
     {
         if (allItems == null || string.IsNullOrEmpty(_currentSortKey)) return;
-
         var sorted = GetSorted(allItems);
         if (sorted != null)
         {
             allItems = sorted.ToList();
         }
     }
-
-    /// <summary>
-    /// 파생 클래스에서 테이블의 헤더를 그리기 위해 이 메서드를 구현해야 합니다.
-    /// </summary>
+    
     protected abstract void DrawHeader();
-
-    /// <summary>
-    /// 파생 클래스에서 각 데이터 행을 그리기 위해 이 메서드를 구현해야 합니다.
-    /// </summary>
-    /// <param name="item">그려질 데이터 아이템</param>
     protected abstract void DrawRow(T item);
-
-    /// <summary>
-    /// 파생 클래스에서 정렬 로직을 제공하기 위해 이 메서드를 구현해야 합니다.
-    /// </summary>
-    /// <param name="items">정렬할 아이템 목록</param>
-    /// <returns>정렬된 아이템 목록</returns>
     protected abstract IOrderedEnumerable<T> GetSorted(IEnumerable<T> items);
 }
