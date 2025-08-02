@@ -35,7 +35,7 @@ namespace Core.Ticks
 
         private void Update()
         {
-            _tickTimer += Time.deltaTime;
+            _tickTimer += UnityEngine.Time.deltaTime;
             while (_tickTimer >= _tickInterval)
             {
                 _tickTimer -= _tickInterval;

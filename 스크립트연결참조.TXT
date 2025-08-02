@@ -2,68 +2,63 @@
 
 ## 1. 핵심 시스템 (Core Systems)
 
-### `Core.Ticks.TickManager`
-- **역할**: 게임의 전반적인 틱(시간 단위)을 관리하는 싱글턴 클래스. 모든 시간 기반 로직의 기준점.
-- **주요 특징 및 최적화**:
-    - **씬 전환 시 유지**: `DontDestroyOnLoad`를 사용하여 씬이 바뀌어도 인스턴스가 유지됨.
-    - **안전한 리스너 순회**: 틱 리스너 목록을 역순으로 순회하여, `OnTick` 메서드 내에서 리스너가 제거되더라도 순회 오류가 발생하지 않도록 보장.
-    - **효율적인 리스너 제거**: `UnregisterListener` 호출 시 중복 탐색 없이 리스너를 제거.
-- **주요 설정**:
-    - `ticksPerSecond`: 1초당 틱 발생 횟수. (기본값: 10)
+### `Core.Time.GameTimeManager`
+- **역할**: 게임의 전반적인 시간 흐름(배속, 일시정지)을 관리하는 싱글턴.
+- **주요 특징**:
+    - **씬 전환 시 유지**: `DontDestroyOnLoad`로 씬이 바뀌어도 인스턴스가 유지됨.
+    - **`GameDeltaTime`**: 배속/일시정지가 적용된 `deltaTime`. 시간 기반 로직은 이 값을 사용해야 함.
 - **연결**:
-    - `Core.Ticks.ITickListener`를 구현한 모든 객체는 `RegisterListener`를 통해 `TickManager`에 등록하여 틱 이벤트를 수신해야 함.
+    - `Combat.Buffs.BuffController`가 버프의 지속시간을 계산하는 데 사용.
+- **위치**: `Assets/Scripts/Core/Time/GameTimeManager.cs`
+
+### `Core.Ticks.TickManager`
+- **역할**: 게임의 고정된 틱(Tick) 단위를 관리하는 싱글턴.
+- **주요 특징 및 최적화**:
+    - **씬 전환 시 유지**, **안전한 리스너 순회**, **효율적인 리스너 제거**.
+- **연결**:
+    - `Core.Ticks.ITickListener`를 구현한 모든 객체가 틱 이벤트를 수신. (향후 `Combatant` 등)
 - **위치**: `Assets/Scripts/Core/TickManager.cs`
 
-### `Core.Ticks.ITickListener`
-- **역할**: `TickManager`로부터 틱 이벤트를 수신하기 위한 인터페이스.
-- **주요 메서드**:
-    - `OnTick(long tick)`: 매 틱마다 호출되는 메서드.
-- **구현 대상**: 전투 캐릭터, 버프/디버프 효과 등 시간의 흐름에 따라 동작해야 하는 모든 객체.
-- **위치**: `Assets/Scripts/Core/ITickListener.cs`
-
 ### `Core.Logging` (로깅 시스템)
-- **역할**: 게임 내 발생하는 모든 로그를 목적에 따라 분리하여 중앙에서 관리.
-- **`GameLogger` (일반 디버그 로거)**:
-    - **목적**: 개발 및 디버깅 편의성을 위한 로그 기록.
-    - **주요 특징**:
-        - **조건부 로깅**: `GameLogger.IsEnabled` 플래그로 로그 생성을 제어. (에디터 기본 활성화, 빌드 기본 비활성화)
-        - **UTC 타임스탬프**, **Null 안전성**
-    - **사용**: 일반적인 개발, 디버깅 과정에서 사용.
-- **`AntiCheatLogger` (보안 로거)**:
-    - **목적**: 핵, 치팅 등 비정상적인 플레이어 활동을 감지하고 기록하기 위한 보안 전용 로거.
-    - **주요 특징**:
-        - **조작 방지**: `readonly`와 정적 생성자를 통해 런타임 상태 변경 방지.
-        - **항시 활성화**: 릴리즈 빌드를 포함하여 항상 활성화 상태를 유지.
-        - **목적 기반 메서드**: `LogSuspiciousActivity`, `LogCheatDetected` 등 명확한 목적의 로깅 메서드 제공.
-- **공통 인터페이스**:
-    - `ILogger`, `UnityConsoleLogger`
+- **역할**: 게임 내 모든 로그를 목적(디버그, 보안)에 따라 분리하여 중앙에서 관리.
+- **주요 특징**:
+    - **컨텍스트 오브젝트 지원**: 로그 클릭 시 해당 오브젝트를 하이라이트하는 기능 추가.
+- **`GameLogger` (일반 디버그 로거)**, **`AntiCheatLogger` (보안 로거)**
 - **위치**: `Assets/Scripts/Core/Logging/`
 
 ## 2. 캐릭터 시스템 (Character Systems)
 
-### `Character.StatType` (enum)
-- **역할**: 캐릭터가 가질 수 있는 모든 스탯의 종류를 정의.
-- **특징**:
-    - 스탯을 기본, 생존, 공격, 속성 등으로 분류하여 관리.
-    - 각 스탯은 고유한 정수 값을 가짐.
-    - **결정론적 데이터 원칙**: 모든 스탯 값은 정수로 관리. 비율(%) 등은 1000을 곱한 정수로 저장.
-- **의존성**:
-    - `Character.CharacterStats`에서 스탯을 관리하기 위한 키로 사용됨.
-    - `CombatCalculator`에서 피해량 계산 시 참조될 예정.
-- **위치**: `Assets/Scripts/StatType.cs`
-
 ### `Character.CharacterStats`
-- **역할**: 캐릭터의 모든 스탯(기본 스탯, 버프/디버프로 인한 변화량 등)을 종합하여 최종 스탯을 관리하고 계산.
+- **역할**: 캐릭터의 모든 스탯을 종합하여 최종 값을 계산하고 제공.
 - **주요 기능**:
-    - `GetStat(StatType type)`: 특정 스탯의 최종 값을 조회.
-    - `AddModifier()`, `RemoveModifiersFromSource()`: 스탯 변화를 동적으로 추가/제거.
+    - `GetStat(StatType type)`, `AddModifier()`, `RemoveModifiersFromSource()`
 - **최적화 및 정확성**:
-    - **Enum 캐싱**: `Enum.GetValues` 결과를 캐싱하여 불필요한 GC 할당 방지.
-    - **LINQ 미사용**: 스탯 계산 시 `for` 루프를 사용하여 GC 할당 최소화.
-    - **지연 계산**: 스탯 값에 변화가 있을 때만(`_isDirty` 플래그) 최종 스탯을 다시 계산하여 성능 최적화.
-    - **지연 정렬**: 스탯 모디파이어 추가 시 매번 정렬하지 않고, 실제 계산이 필요할 때 한 번만 정렬.
-    - **반올림 처리**: 스탯 계산 시 `Mathf.RoundToInt`를 사용하여 보다 정확한 값을 계산.
+    - **Enum 캐싱**, **LINQ 미사용**, **지연 계산**, **지연 정렬**, **반올림 처리**.
 - **연결**:
-    - `StatType` enum을 사용하여 스탯을 구분.
-    - `StatModifier` 클래스를 사용하여 스탯 변화량을 관리.
+    - `Combat.Buffs.BuffController`가 버프 효과를 적용/제거하기 위해 이 클래스와 상호작용.
 - **위치**: `Assets/Scripts/CharacterStats.cs`
+
+## 3. 전투 시스템 (Combat Systems)
+
+### `Combat.Buffs.Buff` (ScriptableObject)
+- **역할**: 버프/디버프의 데이터 원형(설계도)을 정의.
+- **주요 데이터**: 이름, 설명, 지속시간, 스탯 모디파이어 목록 등.
+- **사용법**: 유니티 에디터에서 에셋 파일로 다양한 버프를 생성하고 수정.
+- **위치**: `Assets/Scripts/Combat/Buff.cs`
+
+### `Combat.Buffs.BuffController`
+- **역할**: 캐릭터에게 부착되어, 해당 캐릭터에게 적용된 모든 버프를 실시간으로 관리.
+- **주요 기능**:
+    - 버프 추가 및 제거.
+    - `GameTimeManager`를 사용하여 각 버프의 남은 시간을 관리하고 만료 처리.
+- **연결**:
+    - `Buff` 에셋을 기반으로 `ActiveBuff` 인스턴스를 생성.
+    - `CharacterStats`에 스탯 모디파이어를 추가/제거하여 실제 효과를 적용.
+- **위치**: `Assets/Scripts/Combat/BuffController.cs`
+
+## 4. 설정 (Settings)
+
+### `Settings.GameSettings` (ScriptableObject)
+- **역할**: 게임의 핵심 설정을 관리. (예: 레벨업 보너스)
+- **사용법**: 기획자가 코드를 건드리지 않고 에셋 파일 수정을 통해 게임 밸런스를 조절.
+- **위치**: `Assets/Settings/GameSettings.cs`

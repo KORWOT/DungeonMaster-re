@@ -36,19 +36,19 @@ namespace Core.Logging
             _logger = newLogger ?? new UnityConsoleLogger();
         }
 
-        public static void Log(string message)
+        public static void Log(string message, UnityEngine.Object context = null)
         {
             if (!IsEnabled) return;
-            _logger.Log($"[LOG] {DateTime.UtcNow:HH:mm:ss}: {message}");
+            _logger.Log($"[LOG] {DateTime.UtcNow:HH:mm:ss}: {message}", context);
         }
 
-        public static void LogWarning(string message)
+        public static void LogWarning(string message, UnityEngine.Object context = null)
         {
             if (!IsEnabled) return;
-            _logger.LogWarning($"[WARNING] {DateTime.UtcNow:HH:mm:ss}: {message}");
+            _logger.LogWarning($"[WARNING] {DateTime.UtcNow:HH:mm:ss}: {message}", context);
         }
 
-        public static void LogError(string message, Exception e = null)
+        public static void LogError(string message, Exception e = null, UnityEngine.Object context = null)
         {
             if (!IsEnabled) return;
             string errorMessage = $"[ERROR] {DateTime.UtcNow:HH:mm:ss}: {message}";
@@ -56,7 +56,7 @@ namespace Core.Logging
             {
                 errorMessage += $"\nException: {e.Message}\n{e.StackTrace}";
             }
-            _logger.LogError(errorMessage);
+            _logger.LogError(errorMessage, context);
         }
     }
 }
