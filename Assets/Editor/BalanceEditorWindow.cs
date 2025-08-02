@@ -13,10 +13,28 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
     protected string _currentSortKey;
     protected bool _isAscending = true;
     
+    // 일괄 편집을 위한 선택된 아이템 목록
+    protected readonly HashSet<T> _selectedItems = new HashSet<T>();
+
     /// <summary>
     /// 파생 클래스에서 새 에셋을 저장할 기본 경로를 지정해야 합니다. (예: "Assets/Data/Buffs")
     /// </summary>
     protected abstract string GetNewAssetPath();
+
+    /// <summary>
+    /// (선택적) 파생 클래스에서 고급 필터 UI를 그립니다.
+    /// </summary>
+    protected virtual void DrawFilters() { }
+
+    /// <summary>
+    /// (선택적) 파생 클래스에서 일괄 편집 UI를 그립니다.
+    /// </summary>
+    protected virtual void DrawBulkEditControls() { }
+
+    /// <summary>
+    /// 파생 클래스에서 고급 필터링 로직을 구현합니다.
+    /// </summary>
+    protected abstract IEnumerable<T> ApplyAdvancedFilters(IEnumerable<T> items);
 
     protected virtual void OnEnable()
     {
@@ -25,6 +43,7 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
 
     protected void LoadAllAssets()
     {
+        _selectedItems.Clear();
         string[] guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
         allItems = new List<T>();
         foreach (string guid in guids)
@@ -53,7 +72,9 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
             _searchQuery = "";
             GUI.FocusControl(null);
         }
-
+        
+        DrawFilters();
+        
         GUILayout.FlexibleSpace();
 
         if (GUILayout.Button("Create New", EditorStyles.toolbarButton))
@@ -66,6 +87,15 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
             LoadAllAssets();
         }
         EditorGUILayout.EndHorizontal();
+        
+        // --- 일괄 편집 UI ---
+        if (_selectedItems.Count > 0)
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            GUILayout.Label($"Bulk Edit ({_selectedItems.Count} items selected)", EditorStyles.boldLabel);
+            DrawBulkEditControls();
+            EditorGUILayout.EndVertical();
+        }
         
         EditorGUILayout.Space();
 
@@ -84,14 +114,11 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
     {
         T newAsset = CreateInstance<T>();
         string path = GetNewAssetPath();
-
-        // 폴더가 없으면 생성
+        
         if (!AssetDatabase.IsValidFolder(path))
         {
-            // "Assets"를 기준으로 하위 폴더 경로를 만듭니다.
             string parentFolder = "Assets";
             string[] folders = path.Split('/');
-            // 첫번째(Assets)는 건너뛰고 시작
             for(int i = 1; i < folders.Length; i++)
             {
                 string currentPath = parentFolder + "/" + folders[i];
@@ -103,14 +130,12 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
             }
         }
         
-        // 중복되지 않는 파일 경로 생성
         string assetPathAndName = AssetDatabase.GenerateUniqueAssetPath($"{path}/New {typeof(T).Name}.asset");
 
         AssetDatabase.CreateAsset(newAsset, assetPathAndName);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         
-        // 생성된 에셋을 선택하고, 목록을 새로고침
         EditorUtility.FocusProjectWindow();
         Selection.activeObject = newAsset;
         LoadAllAssets();
@@ -123,10 +148,23 @@ public abstract class BalanceEditorWindow<T> : EditorWindow where T : Scriptable
         var filteredItems = string.IsNullOrEmpty(_searchQuery)
             ? allItems
             : allItems.Where(item => item.name.IndexOf(_searchQuery, StringComparison.OrdinalIgnoreCase) >= 0);
+            
+        filteredItems = ApplyAdvancedFilters(filteredItems);
 
         foreach (T item in filteredItems)
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
+            
+            // --- 선택 체크박스 ---
+            bool isSelected = _selectedItems.Contains(item);
+            EditorGUI.BeginChangeCheck();
+            isSelected = EditorGUILayout.Toggle(isSelected, GUILayout.Width(20));
+            if (EditorGUI.EndChangeCheck())
+            {
+                if (isSelected) _selectedItems.Add(item);
+                else _selectedItems.Remove(item);
+            }
+
             EditorGUI.BeginChangeCheck();
             DrawRow(item);
             if (EditorGUI.EndChangeCheck())
