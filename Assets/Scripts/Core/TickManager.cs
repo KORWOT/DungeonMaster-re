@@ -28,6 +28,7 @@ namespace Core.Ticks
                 return;
             }
             Instance = this;
+            DontDestroyOnLoad(gameObject); // 씬이 전환되어도 파괴되지 않도록 설정
             
             _tickInterval = 1f / ticksPerSecond;
         }
@@ -60,14 +61,11 @@ namespace Core.Ticks
         }
 
         /// <summary>
-        /// 틱 이벤트 수신을 중단할 리스너를 제거합니다.
+        /// 틱 이벤트 수신을 중단할 리스너를 제거합니다. Remove는 내부적으로 탐색 후 제거하므로 효율적입니다.
         /// </summary>
         public void UnregisterListener(ITickListener listener)
         {
-            if (_listeners.Contains(listener))
-            {
-                _listeners.Remove(listener);
-            }
+            _listeners.Remove(listener);
         }
 
         /// <summary>

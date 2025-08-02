@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Character;
 using Core.Logging;
 using UnityEngine;
@@ -40,6 +39,9 @@ namespace Character
     {
         [SerializeField] private List<StatModifier> baseStats = new List<StatModifier>();
 
+        // 클래스 레벨에서 StatType 값들을 한 번만 캐싱하여 Enum.GetValues() 호출로 인한 GC 부담을 줄입니다.
+        private static readonly StatType[] AllStatTypes = (StatType[])Enum.GetValues(typeof(StatType));
+
         private readonly Dictionary<StatType, int> _finalStats = new Dictionary<StatType, int>();
         private readonly Dictionary<StatType, List<StatModifier>> _statModifiers = new Dictionary<StatType, List<StatModifier>>();
         
@@ -53,7 +55,7 @@ namespace Character
 
         private void InitializeStats()
         {
-            foreach (StatType statType in Enum.GetValues(typeof(StatType)))
+            foreach (StatType statType in AllStatTypes)
             {
                 _finalStats[statType] = 0;
                 _statModifiers[statType] = new List<StatModifier>();
@@ -108,7 +110,7 @@ namespace Character
         
         private void CalculateAllFinalStats()
         {
-            foreach (StatType statType in Enum.GetValues(typeof(StatType)))
+            foreach (StatType statType in AllStatTypes)
             {
                 _finalStats[statType] = CalculateFinalStat(statType);
             }
@@ -122,26 +124,39 @@ namespace Character
                 _statModifiers[statType].Sort((a, b) => a.Type.CompareTo(b.Type));
                 _sortRequired[statType] = false;
             }
-            
+
             int finalValue = 0;
-            // 1. 합연산(Flat) 적용
-            foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.Flat))
-            {
-                finalValue += mod.Value;
-            }
-            
-            // 2. 추가 백분율(PercentAdd) 적용 - 반올림 처리
             int percentAddSum = 0;
-            foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.PercentAdd))
+            var modifiers = _statModifiers[statType];
+
+            // 1. Flat 합산
+            for (int i = 0; i < modifiers.Count; i++)
             {
-                percentAddSum += mod.Value;
+                var mod = modifiers[i];
+                if (mod.Type == StatModType.Flat)
+                {
+                    finalValue += mod.Value;
+                }
+                else if (mod.Type == StatModType.PercentAdd)
+                {
+                    percentAddSum += mod.Value;
+                }
             }
-            finalValue += Mathf.RoundToInt(finalValue * (percentAddSum / 1000f));
-            
-            // 3. 최종 백분율(PercentMult) 적용 - 반올림 처리
-            foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.PercentMult))
+
+            // 2. PercentAdd 적용
+            if (percentAddSum > 0)
             {
-                finalValue = Mathf.RoundToInt(finalValue * (1 + mod.Value / 1000f));
+                finalValue += Mathf.RoundToInt(finalValue * (percentAddSum / 1000f));
+            }
+
+            // 3. PercentMult 적용
+            for (int i = 0; i < modifiers.Count; i++)
+            {
+                var mod = modifiers[i];
+                if (mod.Type == StatModType.PercentMult)
+                {
+                    finalValue = Mathf.RoundToInt(finalValue * (1 + mod.Value / 1000f));
+                }
             }
 
             return finalValue;

@@ -1,9 +1,9 @@
 using System;
 using UnityEngine;
-using System.Text;
-using System.Net.Http;
-using System.Collections.Generic;
-using System.IO;
+// using System.Text;      // TODO: 향후 암호화 구현 시 사용
+// using System.Net.Http;  // TODO: 향후 서버 전송 시 사용
+// using System.Collections.Generic;  // TODO: 향후 큐 관리 시 사용
+// using System.IO;        // TODO: 향후 로컬 파일 저장 시 사용
 
 namespace Core.Logging
 {
@@ -98,6 +98,12 @@ namespace Core.Logging
         // =====================================================================
         // TODO: 추가 보안 구현 사항들 (게임 개발 막바지에 구현)
         // =====================================================================
+
+        // TODO: HttpClient 재사용 계획
+        // private static readonly HttpClient _httpClient = new HttpClient() 
+        // { 
+        //     Timeout = TimeSpan.FromSeconds(10) 
+        // };
         
         /* TODO: 서버 전송 시스템
         private static async void SendLogToServerAsync(string logData)
@@ -111,7 +117,7 @@ namespace Core.Logging
                 var httpClient = new HttpClient();
                 var response = await httpClient.PostAsync(
                     "https://your-game-server.com/api/anticheat/logs", 
-                    new StringContent(encryptedData, Encoding.UTF8, "application/json")
+                    new StringContent(encryptedData, System.Text.Encoding.UTF8, "application/json")
                 );
                 
                 // 3. 전송 실패 시 로컬 큐에 저장
@@ -138,7 +144,7 @@ namespace Core.Logging
             
             string encryptedLog = EncryptLogData(logData);
             string hiddenPath = GetHiddenLogPath();
-            File.AppendAllText(hiddenPath, encryptedLog + Environment.NewLine);
+            System.IO.File.AppendAllText(hiddenPath, encryptedLog + Environment.NewLine);
         }
         */
 
@@ -153,7 +159,7 @@ namespace Core.Logging
         */
 
         /* TODO: 실패한 로그 큐 관리
-        private static Queue<string> _failedLogs = new Queue<string>();
+        private static System.Collections.Generic.Queue<string> _failedLogs = new System.Collections.Generic.Queue<string>();
         
         private static void AddToFailedLogQueue(string logData)
         {
