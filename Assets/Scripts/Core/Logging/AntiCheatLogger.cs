@@ -192,30 +192,30 @@ namespace Core.Logging
         }
         */
     }
-}
 
-/// <summary>
-/// 추가 보안을 위한 로그 검증 유틸리티
-/// </summary>
-public static class LogVerifier
-{
-    private static readonly string _logSignature = GenerateSignature();
-    
     /// <summary>
-    /// 로그 무결성 검증을 위한 시그니처 생성
+    /// 추가 보안을 위한 로그 검증 유틸리티
     /// </summary>
-    private static string GenerateSignature()
+    public static class LogVerifier
     {
-        // 실제로는 더 복잡한 암호화 해시 사용
-        return $"{SystemInfo.deviceUniqueIdentifier}_{DateTime.UtcNow.Ticks}";
-    }
-    
-    /// <summary>
-    /// 로그가 조작되지 않았는지 검증
-    /// </summary>
-    public static bool VerifyLogIntegrity()
-    {
-        // 실제 구현에서는 로그 파일의 해시값 검증 등
-        return !string.IsNullOrEmpty(_logSignature);
+        private static readonly string _logSignature = GenerateSignature();
+        
+        /// <summary>
+        /// 로그 무결성 검증을 위한 시그니처 생성
+        /// </summary>
+        private static string GenerateSignature()
+        {
+            // 실제로는 더 복잡한 암호화 해시 사용
+            return $"{SystemInfo.deviceUniqueIdentifier}_{DateTime.UtcNow.Ticks}";
+        }
+        
+        /// <summary>
+        /// 로그가 조작되지 않았는지 검증
+        /// </summary>
+        public static bool VerifyLogIntegrity()
+        {
+            // 실제 구현에서는 로그 파일의 해시값 검증 등
+            return !string.IsNullOrEmpty(_logSignature);
+        }
     }
 }

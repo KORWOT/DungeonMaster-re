@@ -43,8 +43,8 @@ namespace Character
         private readonly Dictionary<StatType, int> _finalStats = new Dictionary<StatType, int>();
         private readonly Dictionary<StatType, List<StatModifier>> _statModifiers = new Dictionary<StatType, List<StatModifier>>();
         
-        // 스탯이 변경되었는지 여부를 추적하여 불필요한 계산을 방지합니다.
         private bool _isDirty = true;
+        private readonly Dictionary<StatType, bool> _sortRequired = new Dictionary<StatType, bool>();
 
         private void Awake()
         {
@@ -57,6 +57,7 @@ namespace Character
             {
                 _finalStats[statType] = 0;
                 _statModifiers[statType] = new List<StatModifier>();
+                _sortRequired[statType] = false;
             }
 
             foreach (var stat in baseStats)
@@ -81,7 +82,7 @@ namespace Character
         public void AddModifier(StatModifier modifier)
         {
             _statModifiers[modifier.StatType].Add(modifier);
-            _statModifiers[modifier.StatType].Sort((a, b) => a.Type.CompareTo(b.Type));
+            _sortRequired[modifier.StatType] = true;
             _isDirty = true;
             GameLogger.Log($"Added StatModifier: {modifier.StatType} {modifier.Type} {modifier.Value} from {modifier.Source}");
         }
@@ -116,6 +117,12 @@ namespace Character
 
         private int CalculateFinalStat(StatType statType)
         {
+            if (_sortRequired.TryGetValue(statType, out bool needsSort) && needsSort)
+            {
+                _statModifiers[statType].Sort((a, b) => a.Type.CompareTo(b.Type));
+                _sortRequired[statType] = false;
+            }
+            
             int finalValue = 0;
             // 1. 합연산(Flat) 적용
             foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.Flat))
@@ -123,18 +130,18 @@ namespace Character
                 finalValue += mod.Value;
             }
             
-            // 2. 추가 백분율(PercentAdd) 적용
+            // 2. 추가 백분율(PercentAdd) 적용 - 반올림 처리
             int percentAddSum = 0;
             foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.PercentAdd))
             {
                 percentAddSum += mod.Value;
             }
-            finalValue += (int) (finalValue * (percentAddSum / 1000f));
+            finalValue += Mathf.RoundToInt(finalValue * (percentAddSum / 1000f));
             
-            // 3. 최종 백분율(PercentMult) 적용
+            // 3. 최종 백분율(PercentMult) 적용 - 반올림 처리
             foreach (var mod in _statModifiers[statType].Where(m => m.Type == StatModType.PercentMult))
             {
-                finalValue = (int) (finalValue * (1 + mod.Value / 1000f));
+                finalValue = Mathf.RoundToInt(finalValue * (1 + mod.Value / 1000f));
             }
 
             return finalValue;

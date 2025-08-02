@@ -40,7 +40,8 @@ namespace Core.Ticks
                 _tickTimer -= _tickInterval;
                 _currentTick++;
                 
-                for (int i = 0; i < _listeners.Count; i++)
+                // 역순으로 순회하여 리스너가 OnTick 내부에서 스스로를 제거하더라도 안전합니다.
+                for (int i = _listeners.Count - 1; i >= 0; i--)
                 {
                     _listeners[i].OnTick(_currentTick);
                 }
