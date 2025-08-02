@@ -2,13 +2,14 @@ using Combat;
 using Core.Logging;
 using Data;
 using Data.Enums;
+using Managers.Interfaces;
 
 namespace Managers
 {
     /// <summary>
     /// 게임 내 점수를 계산하고 관리하는 클래스입니다.
     /// </summary>
-    public class ScoreManager
+    public class ScoreManager : IScoreManager
     {
         public int TotalScore { get; private set; }
 
@@ -31,6 +32,14 @@ namespace Managers
                 GameLogger.LogError("RewardTable이 주입되지 않았습니다! 점수 계산이 제대로 동작하지 않을 수 있습니다.");
             }
         }
+        
+        public void AddScore(EnemyType enemyType)
+        {
+             // 이 메서드는 외부(GameFlowManager)에서 EnemyInfo를 받아 처리하도록 변경될 것입니다.
+             // 현재는 인터페이스와의 호환성을 위해 시그니처만 유지합니다.
+            throw new System.NotImplementedException("AddScore(EnemyInfo)를 사용해주세요.");
+        }
+
 
         /// <summary>
         /// 처치한 적의 정보를 바탕으로 점수를 계산하고 총 점수에 더합니다.

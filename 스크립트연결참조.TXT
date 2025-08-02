@@ -3,36 +3,42 @@
 # 이 문서는 프로젝트에 포함된 모든 주요 스크립트의 역할과 상호 연결 관계를 구체적으로 기술합니다.
 
 ---
-## 1. 관리자 시스템 (Managers)
-*게임의 핵심 시스템을 총괄하고 관리하는 싱글톤 및 일반 클래스들입니다.*
+## 1. 관리자 시스템 (Managers) & 핵심 시스템 (Core)
+*게임의 핵심 시스템과 서비스 로케이터 패턴을 기술합니다.*
+
+### `Core.Core` (서비스 로케이터)
+- **역할**: 게임의 모든 핵심 서비스(매니저)를 인터페이스 기반으로 등록하고 제공하는 중앙 허브. 싱글톤으로 구현되어 어디서든 서비스에 접근할 수 있게 합니다.
+- **위치**: `Assets/Scripts/Core/Core.cs`
+- **참조하는 스크립트**: (없음 - 모든 서비스가 자신을 등록)
+- **참조되는 스크립트**: 게임 내에서 특정 서비스(예: `ISaveLoadManager`)가 필요한 모든 스크립트.
 
 ### `Managers.GameFlowManager`
-- **역할**: 게임의 전체적인 상태(Lobby, Placement, Combat, Result)를 관리하는 최고 관리자.
+- **역할**: 게임의 전체적인 상태(Lobby, Placement, Combat, Result)를 관리하고, `Core`에 등록될 핵심 서비스들의 생명주기(생성, 초기화)를 관리하는 최고 관리자.
 - **위치**: `Assets/Scripts/Managers/GameFlowManager.cs`
 - **참조하는 스크립트**:
     - (인스펙터) `DungeonGrid`, `MonsterPlacementManager`, `CharacterFactory`, `EnemySpawner`
     - (Resources) `RewardTable`
-    - (직접 생성) `ScoreManager`, `RewardManager`, `SaveLoadManager`
+    - (서비스 로케이터) `Core.Core`를 통해 `ISaveLoadManager`, `IRewardManager`, `IScoreManager` 등의 서비스 사용
     - (데이터) `PlayerData`
 - **참조되는 스크립트**: (없음 - 싱글톤 Instance를 통해 외부에서 접근)
 
 ### `Managers.ScoreManager`
-- **역할**: 적 처치 시 점수를 계산하고, 게임 내 총 점수를 관리.
+- **역할**: 적 처치 시 점수를 계산하고, 게임 내 총 점수를 관리. `IScoreManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
 - **위치**: `Assets/Scripts/Managers/ScoreManager.cs`
 - **참조하는 스크립트**: `RewardTable`, `EnemyInfo`
-- **참조되는 스크립트**: `GameFlowManager`
+- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `IScoreManager` 인터페이스로 참조함.
 
 ### `Managers.RewardManager`
-- **역할**: `ScoreManager`로부터 최종 점수를 받아, `RewardTable`에 정의된 규칙에 따라 보상을 지급.
+- **역할**: 최종 점수를 받아, `RewardTable`에 정의된 규칙에 따라 보상을 지급. `IRewardManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
 - **위치**: `Assets/Scripts/Managers/RewardManager.cs`
 - **참조하는 스크립트**: `RewardTable`, `PlayerData`
-- **참조되는 스크립트**: `GameFlowManager`
+- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `IRewardManager` 인터페이스로 참조함.
 
 ### `Managers.SaveLoadManager`
-- **역할**: `PlayerData`를 암호화하여 파일에 저장/로드.
+- **역할**: `PlayerData`를 암호화하여 파일에 저장/로드. `ISaveLoadManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
 - **위치**: `Assets/Scripts/Managers/SaveLoadManager.cs`
 - **참조하는 스크립트**: `PlayerData`
-- **참조되는 스크립트**: `GameFlowManager`
+- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `ISaveLoadManager` 인터페이스로 참조함.
 
 ---
 ## 2. 핵심 시스템 (Core)

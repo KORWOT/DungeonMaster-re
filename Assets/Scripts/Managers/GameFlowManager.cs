@@ -1,8 +1,10 @@
 using Combat;
+using Core;
 using Core.Logging;
 using Data;
 using Dungeon;
 using Factories;
+using Managers.Interfaces;
 using UnityEngine;
 
 namespace Managers
@@ -36,10 +38,10 @@ namespace Managers
         [Tooltip("사용할 보상 테이블 파일의 이름")]
         [SerializeField] private string rewardTableName = "DefaultRewardTable";
         
-        // --- 내부 관리 클래스 (직접 생성) ---
-        public ScoreManager ScoreManager { get; private set; }
-        public RewardManager RewardManager { get; private set; }
-        public SaveLoadManager SaveLoadManager { get; private set; }
+        // --- 서비스 로케이터를 통해 접근할 매니저들 ---
+        private ISaveLoadManager _saveLoadManager;
+        private IRewardManager _rewardManager;
+        private IScoreManager _scoreManager;
 
         // --- 임시 데이터 ---
         private PlayerData _currentPlayerData;
@@ -54,26 +56,36 @@ namespace Managers
             Instance = this;
             DontDestroyOnLoad(gameObject);
             
+            InitializeManagers();
+            
+            // 다른 컴포넌트 초기화
+            enemySpawner.Initialize(dungeonGrid);
+        }
+
+        private void InitializeManagers()
+        {
             // 데이터 에셋 로드
             var rewardTable = Resources.Load<RewardTable>(rewardTableName);
             if (rewardTable == null)
             {
                 GameLogger.LogError($"RewardTable '{rewardTableName}'을 Resources 폴더에서 찾을 수 없습니다!");
             }
-
-            // MonoBehaviour가 아닌 매니저들은 직접 생성합니다.
-            ScoreManager = new ScoreManager(rewardTable, 1); // 임시로 난이도 1
-            RewardManager = new RewardManager(rewardTable);
-            SaveLoadManager = new SaveLoadManager();
             
-            // 다른 컴포넌트 초기화
-            enemySpawner.Initialize(dungeonGrid);
+            // 매니저 인스턴스를 생성하고 Core에 등록합니다.
+            _saveLoadManager = new SaveLoadManager();
+            Core.Instance.Register<ISaveLoadManager>(_saveLoadManager);
+
+            _rewardManager = new RewardManager(rewardTable);
+            Core.Instance.Register<IRewardManager>(_rewardManager);
+
+            _scoreManager = new ScoreManager(rewardTable, 1); // 임시로 난이도 1
+            Core.Instance.Register<IScoreManager>(_scoreManager);
         }
 
         private void Start()
         {
             // 초기 게임 상태를 로비로 설정
-            _currentPlayerData = SaveLoadManager.LoadData() ?? new PlayerData();
+            _currentPlayerData = (_saveLoadManager as SaveLoadManager)?.LoadData() ?? new PlayerData();
             ChangeState(GameState.Lobby);
         }
 
@@ -92,7 +104,7 @@ namespace Managers
             {
                 case GameState.Lobby:
                     // 로비 UI 표시, 모든 게임 데이터 초기화
-                    ScoreManager.ResetScore();
+                    _scoreManager.ResetScore();
                     break;
                 case GameState.Placement:
                     // 배치 UI 활성화, 던전 그리드 초기화
@@ -105,9 +117,9 @@ namespace Managers
                     break;
                 case GameState.Result:
                     // 전투 중단, 결과 UI 표시, 보상 처리
-                    RewardManager.GrantRewards(_currentPlayerData, ScoreManager.TotalScore);
+                    _rewardManager.DistributeRewards(_scoreManager.TotalScore, _currentPlayerData);
                     // 변경된 플레이어 데이터 저장
-                    SaveLoadManager.SaveData(_currentPlayerData);
+                    (_saveLoadManager as SaveLoadManager)?.SaveData(_currentPlayerData);
                     break;
                 case GameState.Paused:
                     // 게임 일시정지 (GameTimeManager 사용)

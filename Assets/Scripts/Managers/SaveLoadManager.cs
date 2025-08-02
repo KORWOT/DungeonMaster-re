@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Core.Logging;
 using Data;
+using Managers.Interfaces;
 using UnityEngine;
 
 namespace Managers
@@ -11,7 +12,7 @@ namespace Managers
     /// 게임 데이터의 저장 및 로드를 담당하는 클래스입니다.
     /// 데이터는 AES 암호화를 거쳐 파일에 저장됩니다.
     /// </summary>
-    public class SaveLoadManager
+    public class SaveLoadManager : ISaveLoadManager
     {
         private readonly string _savePath;
         private readonly byte[] _encryptionKey;
@@ -32,6 +33,13 @@ namespace Managers
             {
                 _encryptionKey = rfc2898.GetBytes(32); 
             }
+        }
+
+        public void SaveData()
+        {
+            // 이 메서드는 외부(GameFlowManager)에서 PlayerData를 받아 처리하도록 변경될 것입니다.
+            // 현재는 인터페이스와의 호환성을 위해 시그니처만 유지합니다.
+            throw new System.NotImplementedException("SaveData(PlayerData)를 사용해주세요.");
         }
 
         /// <summary>
@@ -79,6 +87,13 @@ namespace Managers
                 File.Delete(_savePath); // 손상된 파일일 수 있으므로 삭제
                 return null;
             }
+        }
+
+        void ISaveLoadManager.LoadData()
+        {
+             // 이 메서드는 외부(GameFlowManager)에서 PlayerData를 받아 처리하도록 변경될 것입니다.
+             // 현재는 인터페이스와의 호환성을 위해 시그니처만 유지합니다.
+            throw new System.NotImplementedException("LoadData()는 PlayerData를 반환합니다.");
         }
         
         // --- AES-256-CBC 암호화/복호화 ---

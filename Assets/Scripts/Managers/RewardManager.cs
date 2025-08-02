@@ -1,5 +1,6 @@
 using Core.Logging;
 using Data;
+using Managers.Interfaces;
 
 namespace Managers
 {
@@ -7,7 +8,7 @@ namespace Managers
     /// 전투 종료 후 보상 지급을 처리하는 클래스입니다.
     /// 보상 규칙은 RewardTable ScriptableObject를 통해 주입받습니다.
     /// </summary>
-    public class RewardManager
+    public class RewardManager : IRewardManager
     {
         private readonly RewardTable _rewardTable;
 
@@ -23,13 +24,8 @@ namespace Managers
                 GameLogger.LogError("RewardTable이 주입되지 않았습니다! 보상 시스템이 제대로 동작하지 않을 수 있습니다.");
             }
         }
-
-        /// <summary>
-        /// 최종 점수를 기반으로 보상을 계산하고 플레이어 데이터에 지급합니다.
-        /// </summary>
-        /// <param name="playerData">보상을 받을 플레이어의 영구 데이터</param>
-        /// <param name="totalScore">플레이어가 획득한 최종 점수</param>
-        public void GrantRewards(PlayerData playerData, int totalScore)
+        
+        public void DistributeRewards(int totalScore, PlayerData playerData)
         {
             if (_rewardTable == null || playerData == null) return;
 
