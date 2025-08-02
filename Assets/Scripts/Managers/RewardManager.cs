@@ -25,44 +25,39 @@ namespace Managers
         }
 
         /// <summary>
-        /// 전투 승리 시 보상을 계산하고 지급합니다.
+        /// 최종 점수를 기반으로 보상을 계산하고 플레이어 데이터에 지급합니다.
         /// </summary>
-        /// <param name="playerData">플레이어의 영구 데이터</param>
-        public void GrantVictoryRewards(PlayerData playerData)
+        /// <param name="playerData">보상을 받을 플레이어의 영구 데이터</param>
+        /// <param name="totalScore">플레이어가 획득한 최종 점수</param>
+        public void GrantRewards(PlayerData playerData, int totalScore)
         {
-            if (_rewardTable == null) return;
-            
-            GameLogger.Log("전투 승리! 보상을 지급합니다.");
+            if (_rewardTable == null || playerData == null) return;
 
-            long crystalReward = _rewardTable.BaseVictoryCrystal;
-            long coinReward = _rewardTable.BaseVictoryCoin;
+            GameLogger.Log($"게임 종료! 최종 점수: {totalScore}. 보상을 지급합니다.");
 
-            playerData.Crystal += crystalReward;
-            playerData.Coin += coinReward;
-            
-            GameLogger.Log($"보상: 크리스탈 +{crystalReward}, 코인 +{coinReward}");
-            
-            // TODO: 카드, 아이템 등 추가 보상 지급 로직
-        }
+            RewardTier finalTier = _rewardTable.GetTierForScore(totalScore);
 
-        /// <summary>
-        /// 전투 패배 시 보상을 계산하고 지급합니다.
-        /// </summary>
-        /// <param name="playerData">플레이어의 영구 데이터</param>
-        /// <param name="reachedWave">도달한 웨이브 번호</param>
-        public void GrantDefeatRewards(PlayerData playerData, int reachedWave)
-        {
-            if (_rewardTable == null) return;
+            if (finalTier == null)
+            {
+                GameLogger.Log("달성한 보상 등급이 없어 지급되는 보상이 없습니다.");
+                return;
+            }
 
-            GameLogger.Log($"전투 패배... (도달 웨이브: {reachedWave})");
-
-            long crystalReward = reachedWave * _rewardTable.DefeatCrystalPerWave;
-            long coinReward = reachedWave * _rewardTable.DefeatCoinPerWave;
-            
-            playerData.Crystal += crystalReward;
-            playerData.Coin += coinReward;
-
-            GameLogger.Log($"보상: 크리스탈 +{crystalReward}, 코인 +{coinReward}");
+            GameLogger.Log($"달성 보상 등급: {finalTier.ScoreThreshold}점 등급");
+            foreach (var rewardItem in finalTier.Rewards)
+            {
+                // TODO: RewardItem의 Type에 따라 재화, 경험치, 아이템 등을 구분하여 지급하는 로직 구현
+                if (rewardItem.Type.Equals("Crystal", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    playerData.Crystal += rewardItem.Amount;
+                    GameLogger.Log($"크리스탈 +{rewardItem.Amount} (총: {playerData.Crystal})");
+                }
+                else if (rewardItem.Type.Equals("Coin", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    playerData.Coin += rewardItem.Amount;
+                    GameLogger.Log($"코인 +{rewardItem.Amount} (총: {playerData.Coin})");
+                }
+            }
         }
     }
 }

@@ -37,8 +37,12 @@ namespace Managers
         [SerializeField] private string rewardTableName = "DefaultRewardTable";
         
         // --- 내부 관리 클래스 (직접 생성) ---
+        public ScoreManager ScoreManager { get; private set; }
         public RewardManager RewardManager { get; private set; }
         public SaveLoadManager SaveLoadManager { get; private set; }
+
+        // --- 임시 데이터 ---
+        private PlayerData _currentPlayerData;
 
         private void Awake()
         {
@@ -58,6 +62,7 @@ namespace Managers
             }
 
             // MonoBehaviour가 아닌 매니저들은 직접 생성합니다.
+            ScoreManager = new ScoreManager(rewardTable, 1); // 임시로 난이도 1
             RewardManager = new RewardManager(rewardTable);
             SaveLoadManager = new SaveLoadManager();
             
@@ -68,6 +73,7 @@ namespace Managers
         private void Start()
         {
             // 초기 게임 상태를 로비로 설정
+            _currentPlayerData = SaveLoadManager.LoadData() ?? new PlayerData();
             ChangeState(GameState.Lobby);
         }
 
@@ -86,6 +92,7 @@ namespace Managers
             {
                 case GameState.Lobby:
                     // 로비 UI 표시, 모든 게임 데이터 초기화
+                    ScoreManager.ResetScore();
                     break;
                 case GameState.Placement:
                     // 배치 UI 활성화, 던전 그리드 초기화
@@ -97,8 +104,10 @@ namespace Managers
                     // enemySpawner.StartSpawning(...);
                     break;
                 case GameState.Result:
-                    // 전투 중단, 결과 UI 표시, 보상 처리 (RewardManager 사용)
-                    // RewardManager.GrantVictoryRewards(...);
+                    // 전투 중단, 결과 UI 표시, 보상 처리
+                    RewardManager.GrantRewards(_currentPlayerData, ScoreManager.TotalScore);
+                    // 변경된 플레이어 데이터 저장
+                    SaveLoadManager.SaveData(_currentPlayerData);
                     break;
                 case GameState.Paused:
                     // 게임 일시정지 (GameTimeManager 사용)
