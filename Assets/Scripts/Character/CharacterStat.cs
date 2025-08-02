@@ -11,9 +11,28 @@ namespace Character
     public class CharacterStat
     {
         /// <summary>
-        /// 스탯의 기본 값입니다. (예: 몬스터의 기본 공격력)
+        /// 백분율 계산에 사용되는 크기 조정 값입니다. (예: 10.5%는 105로 저장)
+        /// 1000으로 설정하여 소수점 한 자리까지의 정밀도를 보장합니다.
         /// </summary>
-        public int BaseValue;
+        private const int PercentScale = 1000;
+
+        /// <summary>
+        /// 스탯의 기본 값입니다. (예: 몬스터의 기본 공격력)
+        /// 값이 변경되면 _isDirty 플래그를 설정하여 다음 Value 요청 시 값을 다시 계산하도록 합니다.
+        /// </summary>
+        public int BaseValue
+        {
+            get => _baseValue;
+            set
+            {
+                if (_baseValue != value)
+                {
+                    _baseValue = value;
+                    _isDirty = true;
+                }
+            }
+        }
+        private int _baseValue;
 
         /// <summary>
         /// 계산된 최종 스탯 값을 반환합니다.
@@ -39,7 +58,7 @@ namespace Character
 
         public CharacterStat(int baseValue)
         {
-            BaseValue = baseValue;
+            _baseValue = baseValue;
             _statModifiers = new List<StatModifier>();
         }
         
@@ -102,17 +121,17 @@ namespace Character
                     // PercentMult를 적용하기 전에, 이전에 누적된 PercentAdd를 먼저 계산합니다.
                     if (percentAddSum != 0)
                     {
-                        finalValue += (finalValue * percentAddSum) / 1000;
+                        finalValue += (finalValue * percentAddSum) / PercentScale;
                         percentAddSum = 0; // 적용 후 초기화
                     }
-                    finalValue = (finalValue * (1000 + mod.Value)) / 1000;
+                    finalValue = (finalValue * (PercentScale + mod.Value)) / PercentScale;
                 }
             }
             
             // 모든 순회가 끝난 후, PercentMult 타입이 없어서 적용되지 않은 PercentAdd가 있다면 마저 계산합니다.
             if (percentAddSum != 0)
             {
-                finalValue += (finalValue * percentAddSum) / 1000;
+                finalValue += (finalValue * percentAddSum) / PercentScale;
             }
 
             return finalValue;

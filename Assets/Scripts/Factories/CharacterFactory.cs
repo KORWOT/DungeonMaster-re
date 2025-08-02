@@ -62,25 +62,21 @@ namespace Factories
         }
 
         /// <summary>
-        /// 카드의 데이터를 기반으로 캐릭터의 기본 스탯을 설정합니다.
+        /// 카드의 데이터를 기반으로 캐릭터의 '기본' 스탯을 설정합니다.
+        /// 이 값들은 스탯 계산의 기초가 되며, 모디파이어가 아닙니다.
         /// </summary>
         private void ApplyBaseStats(CharacterStats stats, BaseMonsterCard card)
         {
             // 카드 등급에 따른 기본 스탯 가져오기
             var gradeSetting = _balanceSettings.CardGradeSettings.GetSetting(card.BaseGrade);
             
-            // 레벨업에 따른 추가 스탯 계산 (LevelUpProcessor 사용 필요)
             // TODO: LevelUpProcessor를 통해 계산된 스탯 증가량을 가져와야 함.
-            // long healthFromLevels = ...
+            // 현재는 등급에 따른 기본 스탯만 설정합니다.
+            // int finalHealth = gradeSetting.BaseHealth + healthFromLevels;
             
-            // StatModifier를 생성하여 CharacterStats에 추가
-            var health = new StatModifier(StatType.MaxHP, gradeSetting.BaseHealth, StatModType.Flat, card);
-            var attack = new StatModifier(StatType.Attack, gradeSetting.BaseAttack, StatModType.Flat, card);
-            var defense = new StatModifier(StatType.Defense, gradeSetting.BaseDefense, StatModType.Flat, card);
-            
-            stats.AddModifier(health);
-            stats.AddModifier(attack);
-            stats.AddModifier(defense);
+            stats.SetBaseStat(StatType.MaxHP, gradeSetting.BaseHealth);
+            stats.SetBaseStat(StatType.Attack, gradeSetting.BaseAttack);
+            stats.SetBaseStat(StatType.Defense, gradeSetting.BaseDefense);
         }
     }
 }
