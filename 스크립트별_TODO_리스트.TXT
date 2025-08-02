@@ -1,0 +1,70 @@
+# 스크립트별 TODO 리스트
+# 이 문서는 각 스크립트에 남아있는 개발 과제 및 개선 사항을 추적하기 위해 작성되었습니다.
+
+---
+
+## 1. 관리자 시스템 (Managers)
+
+### `Managers.GameFlowManager`
+- [ ] **참조 추가**: `EnemySpawner`, `RewardManager` 등 필요한 모든 관리자 컴포넌트의 참조 변수를 추가하고 인스펙터에서 연결해야 합니다.
+- [ ] **상태별 로직 구현**: `ChangeState` 메서드 내의 각 `case`문에 실제 동작 코드를 구체화해야 합니다.
+    - `Placement`: `placementManager.ShowPlacementUI()`를 호출하여 UI를 활성화하고, 플레이어의 카드 목록을 전달해야 합니다.
+    - `Combat`: 배치된 몬스터 정보를 바탕으로 `CharacterFactory`를 통해 캐릭터들을 생성하고, `EnemySpawner.StartSpawning()`을 호출하여 적 웨이브를 시작해야 합니다.
+    - `Result`: 전투 결과를 기반으로 `RewardManager`의 보상 지급 메서드를 호출해야 합니다.
+
+### `Managers.RewardManager`
+- [ ] **보상 테이블 SO**: 보상 내용을 하드코딩하는 대신, `ScriptableObject` (예: `RewardTable.asset`)로 만들어 관리해야 합니다. 이를 통해 기획자가 쉽게 보상을 조절할 수 있습니다.
+- [ ] **차등 보상 로직**: 스테이지 난이도, 클리어한 웨이브 수 등에 따라 보상이 달라지는 구체적인 로직을 구현해야 합니다.
+- [ ] **아이템/카드 보상**: 재화 외에 카드나 특별 아이템을 보상으로 지급하는 시스템을 구현해야 합니다.
+
+### `Managers.SaveLoadManager`
+- [ ] **키 보안 강화**: 현재 하드코딩된 암호화 키(`_encryptionKey`)를 보다 안전한 방법(예: 별도 파일, 서버 등)으로 관리하도록 개선해야 합니다.
+
+---
+
+## 2. 던전 및 배치 시스템 (Dungeon)
+
+### `Dungeon.DungeonGrid`
+- [ ] **`BaseDungeonRoom` 클래스**: 현재 `object`로 임시 처리된 방 데이터를 구체적인 `BaseDungeonRoom` 클래스 또는 구조체로 정의하고 시스템에 적용해야 합니다.
+- [ ] **그리드-월드 좌표 변환**: 그리드 좌표(`Vector2Int`)를 실제 게임 월드 좌표(`Vector3`)로 변환해주는 유틸리티 메서드를 추가해야 합니다.
+
+### `Dungeon.MonsterPlacementManager`
+- [ ] **UI 연동**: 실제 UI 컴포넌트와 연동하여 배치 가능한 몬스터 목록을 표시하고, 플레이어의 입력을 받아 몬스터를 선택/배치/제거하는 기능을 구현해야 합니다.
+- [ ] **캐릭터 생성 연동**: 몬스터를 배치할 때, `CharacterFactory`를 호출하여 해당 위치에 실제 몬스터 `GameObject`를 생성하는 로직을 추가해야 합니다.
+- [ ] **배치 유효성 검사**: 최소/최대 배치 몬스터 수, 코스트 제한 등 구체적인 배치 규칙을 검증하는 로직을 구현해야 합니다.
+
+---
+
+## 3. 전투 시스템 (Combat)
+
+### `Combat.EnemySpawner`
+- [ ] **좌표 변환 로직 연결**: `DungeonGrid`에 구현될 그리드-월드 좌표 변환 유틸리티를 사용하여, 적이 정확한 월드 위치에 스폰되도록 수정해야 합니다.
+
+### `Combat.GridMovementController`
+- [ ] **좌표 변환 로직 연결**: 이동 목표 좌표를 설정할 때, 그리드 좌표를 월드 좌표로 변환하는 로직을 적용해야 합니다.
+- [ ] **경로 탐색 (A*)**: 현재의 직선 이동 외에, 장애물을 피해 목적지까지 이동할 수 있는 A* 같은 경로 탐색 알고리즘 도입을 고려해야 합니다.
+
+### `Combat.DemonLordSkillManager`
+- [ ] **`SkillSettings` 연동**: 스킬의 쿨다운, 효과 범위 등의 데이터를 `SkillSettings.asset` 같은 `ScriptableObject`에서 읽어오도록 수정해야 합니다.
+- [ ] **스킬 효과 구현**: `UseSkill` 메서드 내에서 실제 스킬 효과(예: 광역 피해, 버프/디버프 적용 등)를 발동시키는 로직을 구체화해야 합니다.
+
+---
+
+## 4. 공장 (Factories)
+
+### `Factories.CharacterFactory`
+- [ ] **프리팹 관리 개선**: 현재 `[SerializeField]`로 직접 연결하는 프리팹을, `Addressables`나 `Resources` 폴더를 통해 동적으로 로드하도록 시스템을 개선할 수 있습니다.
+- [ ] **마왕 생성**: `CreateDemonLordFromBaseCard` 메서드를 구현하여 마왕 캐릭터를 생성하는 기능을 추가해야 합니다.
+- [ ] **상세 스탯 적용**: 카드의 `EnhanceLevel`, `GrowthRateData`, `CriticalData` 등을 `CharacterStats`에 정확히 반영하여 최종 스탯을 계산하는 로직을 구현해야 합니다.
+- [ ] **특성 적용**: 카드의 `ElementType`과 `ArmorType`에 따른 부가적인 스탯(예: 속성 피해 증가, 특정 속성 저항)을 `CharacterStats`에 적용하는 로직을 구현해야 합니다.
+
+---
+
+## 5. 성장 시스템 (Combat.Growth)
+
+### `Combat.Growth.LevelUpProcessor`
+- [ ] **실제 스탯 성장 로직**: `GrowthRateData`를 기반으로 레벨업 시 실제 스탯(공격력, 체력 등)이 증가하는 계산 로직을 구현해야 합니다.
+
+### `Combat.Growth.BaseCardUpgradeManager`
+- [ ] **강화 설정 SO**: 강화 확률, 필요 재료 등을 정의하는 `ScriptableObject`를 만들고 연동해야 합니다.
+- [ ] **강화/성장 로직 구현**: 카드를 재료로 사용한 강화, 스킬 레벨업 등 구체적인 업그레이드 로직을 모두 구현해야 합니다.

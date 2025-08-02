@@ -2,6 +2,7 @@ using Data;
 using Data.Enums;
 using Settings;
 using UnityEngine;
+using Character;
 
 namespace Combat.Growth
 {

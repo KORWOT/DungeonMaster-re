@@ -1,4 +1,5 @@
 # 스크립트 연결 참조
+# 최종 업데이트: 2025-08-02
 
 ## 1. 데이터 구조 (Data)
 이 섹션은 게임의 핵심 데이터를 정의하는 클래스, 구조체, 열거형을 다룹니다.
@@ -7,21 +8,25 @@
 - **역할**: 플레이어의 모든 영구 데이터를 담는 최상위 클래스. 저장/로드의 대상.
 - **주요 데이터**: 보유 재화, 소유한 카드 목록, 선택한 카드 목록 등.
 - **위치**: `Assets/Scripts/Data/PlayerData.cs`
+- **연관**: `SaveLoadManager` (저장/로드), `RewardManager` (데이터 수정)
 
 ### `Data.BaseMonsterCard`
-- **역할**: 몬스터 카드의 영구적인 데이터를 저장하는 클래스.
+- **역할**: 몬스터 카드의 영구적인 데이터를 저장하는 클래스. `PlayerData`에 포함됨.
 - **주요 데이터**: 고유 ID, 등급, 속성, 방어구 타입, 성장률, 특성, 스킬, 강화 레벨 등.
 - **위치**: `Assets/Scripts/Data/BaseMonsterCard.cs`
+- **연관**: `CharacterFactory` (인게임 캐릭터 생성의 기반), `MonsterPlacementManager` (배치 시 데이터 참조)
 
-### `Data.Structs.CardStructs`
-- **역할**: `BaseMonsterCard` 등에서 사용하는 하위 데이터 묶음을 정의. GC 부담을 줄이기 위해 `struct`로 선언됨.
-- **주요 구조체**: `GrowthRateData`, `CriticalData`, `UniqueSkillData`.
-- **위치**: `Assets/Scripts/Data/CardStructs.cs`
+### `Data.WaveData`
+- **역할**: 한 웨이브에 등장하는 적의 구성과 스폰 설정을 정의하는 `ScriptableObject`.
+- **주요 데이터**: 스폰할 적 프리팹, 수량, 시간 간격, 다음 웨이브까지의 대기 시간.
+- **위치**: `Assets/Scripts/Data/WaveData.cs`
+- **연관**: `EnemySpawner` (이 데이터를 기반으로 적을 스폰)
 
-### `Data.Enums`
-- **역할**: 게임 전반에서 사용되는 핵심 열거형을 정의.
-- **주요 열거형**: `CardGrade`, `ArmorType`, `ElementType`, `GrowthGrade`.
-- **위치**: `Assets/Scripts/Data/Enums/`
+### `Data.Structs` & `Data.Enums`
+- **역할**: GC 부담을 줄이기 위한 `struct`와 게임 전반의 열거형을 정의.
+- **위치**: `Assets/Scripts/Data/Structs/`, `Assets/Scripts/Data/Enums/`
+
+---
 
 ## 2. 설정 (Settings)
 이 섹션은 `ScriptableObject`를 기반으로, 기획자가 쉽게 수정할 수 있는 모든 게임 밸런스 및 규칙을 다룹니다.
@@ -30,24 +35,84 @@
 - **역할**: 모든 핵심 밸런스 설정 SO들을 중앙에서 참조하고 관리하는 허브.
 - **참조 대상**: `ElementalSettings`, `ArmorSettings`, `GrowthRateSettings`, `CriticalSettings`, `CardGradeSettings`.
 - **위치**: `Assets/Settings/CardBalanceSettings.cs`
+- **연관**: 각종 `Calculator` 및 `CharacterFactory`에 주입되어 사용.
 
-### 개별 설정 파일
-- **`ElementalSettings`**: 속성 상성 매트릭스 정의.
-- **`ArmorSettings`**: 방어구 타입별 효과 정의.
-- **`GrowthRateSettings`**: 성장률 등급(F~S)별 수치 범위 정의.
-- **`CriticalSettings`**: 치명타 등급별 수치 범위 정의.
-- **`CardGradeSettings`**: 카드 등급(C~UR)별 기본 스탯 정의.
-- **`SkillSettings`**: 스킬 레벨별 효과 정의.
-- **위치**: `Assets/Settings/`
+---
 
 ## 3. 핵심 시스템 (Core Systems)
+
 - **`Core.Time.GameTimeManager`**: 게임 시간(배속, 일시정지) 관리.
 - **`Core.Ticks.TickManager`**: 고정 틱 단위 관리.
 - **`Core.Logging`**: 디버그 및 보안 로그 관리.
 - **위치**: `Assets/Scripts/Core/`
 
-## 4. 캐릭터 및 전투 시스템
-- **`Character.CharacterStats`**: 캐릭터의 '인게임' 스탯을 계산. 영구 스탯은 `PlayerData`로부터 초기화받음.
-- **`Combat.Buffs.BuffController`**: 캐릭터의 '인게임' 버프를 관리.
-- **`Combat.Buffs.Buff`**: 버프의 데이터 원형.
-- **위치**: `Assets/Scripts/Character/`, `Assets/Scripts/Combat/`
+---
+
+## 4. 관리자 시스템 (Managers)
+이 섹션은 게임의 주요 시스템들을 총괄하고 관리하는 싱글톤 클래스들을 다룹니다.
+
+### `Managers.GameFlowManager`
+- **역할**: 게임의 전체적인 흐름(로비, 배치, 전투, 결과)과 상태를 관리.
+- **주요 기능**: 상태에 따라 다른 Manager들을 활성화/비활성화하고 제어.
+- **위치**: `Assets/Scripts/Managers/GameFlowManager.cs`
+- **연관**: `MonsterPlacementManager`, `EnemySpawner`, `RewardManager` 등 대부분의 Manager와 상호작용.
+
+### `Managers.RewardManager`
+- **역할**: 전투 종료 후 승/패에 따른 보상을 계산하고 `PlayerData`에 지급.
+- **위치**: `Assets/Scripts/Managers/RewardManager.cs`
+- **연관**: `GameFlowManager` (결과 상태에서 호출), `PlayerData` (데이터 수정)
+
+### `Managers.SaveLoadManager`
+- **역할**: `PlayerData`를 암호화하여 파일로 저장하고 불러오는 기능 제공.
+- **위치**: `Assets/Scripts/Managers/SaveLoadManager.cs`
+- **연관**: `PlayerData` (직렬화/역직렬화 대상)
+
+---
+
+## 5. 던전 시스템 (Dungeon)
+
+### `Dungeon.DungeonGrid`
+- **역할**: 3x3 던전 그리드 구조를 관리.
+- **주요 기능**: 방 배치, 몬스터 배치 가능 위치 제공, 마왕방 위치 지정.
+- **위치**: `Assets/Scripts/Dungeon/DungeonGrid.cs`
+- **연관**: `MonsterPlacementManager` (배치 가능 위치 참조), `EnemySpawner` (적 진입 위치 참조)
+
+### `Dungeon.MonsterPlacementManager`
+- **역할**: 전투 시작 전, 플레이어가 몬스터를 던전 그리드에 배치하는 과정을 관리.
+- **위치**: `Assets/Scripts/Dungeon/MonsterPlacementManager.cs`
+- **연관**: `GameFlowManager` (배치 상태에서 활성화), `DungeonGrid` (배치 위치 참조), `BaseMonsterCard` (배치할 몬스터 데이터)
+
+---
+
+## 6. 전투 시스템 (Combat)
+
+### `Character.CharacterStats`
+- **역할**: 캐릭터의 '인게임' 스탯을 실시간으로 계산. 영구 스탯은 `PlayerData`로부터 초기화.
+- **위치**: `Assets/Scripts/Character/CharacterStats.cs`
+- **연관**: `BuffController` (스탯 수정), `CharacterFactory` (초기 스탯 설정)
+
+### `Combat.Buffs.BuffController` & `Buff`
+- **역할**: 캐릭터의 인게임 버프/디버프를 관리하고, `CharacterStats`에 변화를 적용.
+- **위치**: `Assets/Scripts/Combat/Buffs/`
+
+### `Combat.EnemySpawner`
+- **역할**: `WaveData`를 기반으로 적 유닛을 생성하고 던전 입구에 배치.
+- **위치**: `Assets/Scripts/Combat/EnemySpawner.cs`
+- **연관**: `GameFlowManager` (전투 상태에서 호출), `WaveData` (스폰 정보 참조)
+
+### `Combat.GridMovementController`
+- **역할**: 그리드 환경에서 유닛의 이동을 담당. 각 유닛에 부착됨.
+- **위치**: `Assets/Scripts/Combat/GridMovementController.cs`
+
+### `Combat.DemonLordSkillManager`
+- **역할**: 플레이어가 직접 사용하는 마왕의 액티브 스킬을 관리 (사용, 쿨다운).
+- **위치**: `Assets/Scripts/Combat/DemonLordSkillManager.cs`
+
+---
+
+## 7. 공장 (Factories)
+
+### `Factories.CharacterFactory`
+- **역할**: `BaseMonsterCard` 같은 영구 데이터를 기반으로 실제 인게임 캐릭터 GameObject를 생성하고 초기화.
+- **위치**: `Assets/Scripts/Factories/CharacterFactory.cs`
+- **연관**: `BaseMonsterCard`, `CardBalanceSettings`, `CharacterStats`
