@@ -1,5 +1,5 @@
 # 스크립트 연결 참조 (전체)
-# 최종 업데이트: 2025-08-02
+# 최종 업데이트: 2024-07-26
 # 이 문서는 프로젝트에 포함된 모든 주요 스크립트의 역할과 상호 연결 관계를 구체적으로 기술합니다.
 
 ---
@@ -63,10 +63,16 @@
 ## 3. 전투 및 캐릭터 시스템 (Combat & Character)
 
 ### `CharacterStats`
-- **역할**: 캐릭터의 모든 스탯(기본 스탯 + 모디파이어)을 실시간으로 계산.
+- **역할**: 캐릭터의 모든 스탯을 담는 컨테이너 역할을 합니다. 각 스탯의 실제 계산은 `CharacterStat` 클래스에 위임됩니다.
 - **위치**: `Assets/Scripts/CharacterStats.cs`
-- **참조하는 스크립트**: `StatModifier`, `StatType`, `StatModType`
+- **참조하는 스크립트**: `Character.CharacterStat`, `StatType`
 - **참조되는 스크립트**: `BuffController`, `CharacterFactory`
+
+### `Character.CharacterStat`
+- **역할**: 단일 스탯의 기본 값과 모디파이어 리스트를 관리하고, 최종 값을 계산합니다. '스탯 모디파이어' 패턴의 핵심 구현체입니다.
+- **위치**: `Assets/Scripts/Character/CharacterStat.cs`
+- **참조하는 스크립트**: `Data.StatModifier`, `Data.Enums.StatType`, `Data.Enums.StatModType`
+- **참조되는 스크립트**: `CharacterStats`
 
 ### `Combat.EnemyInfo`
 - **역할**: 모든 적 프리팹에 부착되어, 해당 적의 종류와 기본 처치 점수를 저장.

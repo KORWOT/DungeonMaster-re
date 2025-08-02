@@ -1,206 +1,102 @@
 using System;
 using System.Collections.Generic;
-using Character;
-using Core.Logging;
 using UnityEngine;
+using Core.Logging;
 
 namespace Character
 {
     /// <summary>
-    /// 스탯 변경 유형을 정의하는 열거형입니다.
-    /// </summary>
-    public enum StatModType
-    {
-        /// <summary>
-        /// 고정 수치만큼 더합니다 (예: 힘 +10).
-        /// </summary>
-        Flat,
-        /// <summary>
-        /// 기본 스탯에 대한 백분율만큼 더합니다 (예: 기본 공격력의 20% 증가).
-        /// </summary>
-        PercentAdd,
-        /// <summary>
-        /// 모든 계산이 끝난 최종 값에 백분율로 곱합니다 (예: 최종 피해량 1.5배).
-        /// </summary>
-        PercentMult
-    }
-
-    /// <summary>
-    /// 단일 스탯 수치 변경을 나타내는 클래스입니다.
-    /// </summary>
-    [Serializable]
-    public class StatModifier
-    {
-        public StatType StatType;
-        public int Value;
-        public StatModType Type;
-        /// <summary>
-        /// 이 스탯 모디파이어를 제공한 출처입니다 (예: 버프, 장비 아이템).
-        /// </summary>
-        public readonly object Source;
-
-        public StatModifier(StatType statType, int value, StatModType type, object source)
-        {
-            StatType = statType;
-            Value = value;
-            Type = type;
-            Source = source;
-        }
-    }
-    
-    /// <summary>
-    /// 캐릭터의 모든 스탯을 관리하고 최종 스탯 값을 계산합니다.
-    /// 모든 스탯 값은 결정론적 계산을 위해 정수(int)로 관리됩니다.
-    /// 비율(%)이나 소수점이 필요한 스탯은 1000을 곱한 값으로 저장합니다. (예: 25.5% -> 255)
+    /// 캐릭터의 모든 스탯 컨테이너 역할을 하는 클래스입니다. 
+    /// 각 스탯은 CharacterStat 클래스의 인스턴스로 관리됩니다.
+    /// 기획서 9.1. '스탯 모디파이어' 패턴 구현의 핵심 클래스입니다.
     /// </summary>
     public class CharacterStats : MonoBehaviour
     {
-        [Tooltip("캐릭터의 기본 스탯 목록입니다. 'Flat' 타입으로 적용됩니다.")]
-        [SerializeField] private List<StatModifier> baseStats = new List<StatModifier>();
-
-        // 클래스 레벨에서 StatType 값들을 한 번만 캐싱하여 Enum.GetValues() 호출로 인한 GC 부담을 줄입니다.
-        private static readonly StatType[] AllStatTypes = (StatType[])Enum.GetValues(typeof(StatType));
-
-        private readonly Dictionary<StatType, int> _finalStats = new Dictionary<StatType, int>();
-        private readonly Dictionary<StatType, List<StatModifier>> _statModifiers = new Dictionary<StatType, List<StatModifier>>();
-        
-        // 스탯이 변경되어 재계산이 필요한지를 나타내는 플래그입니다.
-        private bool _isDirty = true;
-        // 스탯별로 모디파이어 리스트의 정렬이 필요한지를 나타내는 플래그입니다.
-        private readonly Dictionary<StatType, bool> _sortRequired = new Dictionary<StatType, bool>();
+        // 모든 스탯을 StatType을 키로 하여 관리하는 딕셔너리입니다.
+        private readonly Dictionary<StatType, CharacterStat> _stats = new Dictionary<StatType, CharacterStat>();
 
         private void Awake()
         {
-            InitializeStats();
-        }
-
-        private void InitializeStats()
-        {
-            foreach (StatType statType in AllStatTypes)
+            // 모든 StatType에 대해 CharacterStat 인스턴스를 생성하여 초기화합니다.
+            // 이렇게 하면 런타임에 새로운 스탯 타입이 추가되더라도 코드 수정 없이 처리할 수 있습니다.
+            foreach (StatType statType in Enum.GetValues(typeof(StatType)))
             {
-                _finalStats[statType] = 0;
-                _statModifiers[statType] = new List<StatModifier>();
-                _sortRequired[statType] = false;
+                _stats.Add(statType, new CharacterStat(0)); // 기본값은 0으로 시작합니다.
             }
-
-            foreach (var stat in baseStats)
-            {
-                // 기본 스탯은 이 컴포넌트 자신을 Source로 하여 Flat 타입으로 추가합니다.
-                var modifier = new StatModifier(stat.StatType, stat.Value, StatModType.Flat, this);
-                AddModifier(modifier);
-            }
-            
-            _isDirty = true;
         }
 
         /// <summary>
-        /// 지정된 스탯 타입의 최종 계산된 값을 반환합니다.
+        /// 지정된 스탯의 최종 값을 가져옵니다.
         /// </summary>
         /// <param name="statType">가져올 스탯의 타입</param>
-        /// <returns>최종 스탯 값</returns>
+        /// <returns>최종 계산된 스탯 값</returns>
         public int GetStat(StatType statType)
         {
-            if (_isDirty)
+            if (_stats.TryGetValue(statType, out CharacterStat stat))
             {
-                CalculateAllFinalStats();
-                _isDirty = false;
+                return stat.Value;
             }
-            return _finalStats.TryGetValue(statType, out int value) ? value : 0;
+
+            GameLogger.LogWarning($"[CharacterStats] GetStat: A stat of type {statType} was not found. Returning 0.");
+            return 0;
+        }
+
+        /// <summary>
+        /// 지정된 스탯의 기본 값을 설정합니다.
+        /// 이 메서드는 주로 캐릭터가 처음 생성될 때 기본 스탯을 설정하는 데 사용됩니다.
+        /// </summary>
+        /// <param name="statType">설정할 스탯의 타입</param>
+        /// <param name="value">설정할 기본 값</param>
+        public void SetBaseStat(StatType statType, int value)
+        {
+            if (_stats.TryGetValue(statType, out CharacterStat stat))
+            {
+                stat.BaseValue = value;
+            }
+            else
+            {
+                GameLogger.LogWarning($"[CharacterStats] SetBaseStat: A stat of type {statType} was not found.");
+            }
         }
 
         /// <summary>
         /// 새로운 스탯 모디파이어를 추가합니다.
+        /// 작업은 해당 CharacterStat 인스턴스에 위임됩니다.
         /// </summary>
         /// <param name="modifier">추가할 스탯 모디파이어</param>
         public void AddModifier(StatModifier modifier)
         {
-            _statModifiers[modifier.StatType].Add(modifier);
-            _sortRequired[modifier.StatType] = true;
-            _isDirty = true;
-            GameLogger.Log($"Added StatModifier: {modifier.StatType} {modifier.Type} {modifier.Value} from {modifier.Source}");
+            if (_stats.TryGetValue(modifier.StatType, out CharacterStat stat))
+            {
+                stat.AddModifier(modifier);
+                GameLogger.Log($"Added Modifier to {modifier.StatType}: {modifier.Value} ({modifier.Type}) from {modifier.Source}");
+            }
+            else
+            {
+                GameLogger.LogWarning($"[CharacterStats] AddModifier: A stat of type {modifier.StatType} was not found.");
+            }
         }
 
         /// <summary>
         /// 특정 출처(Source)로부터 비롯된 모든 스탯 모디파이어를 제거합니다.
+        /// 이 작업은 모든 스탯에 대해 이루어집니다. (예: 버프 아이템 효과 동시 제거)
         /// </summary>
         /// <param name="source">제거할 모디파이어의 출처 객체</param>
         public void RemoveModifiersFromSource(object source)
         {
             bool removedAny = false;
-            foreach (var statModifiers in _statModifiers.Values)
+            foreach (CharacterStat stat in _stats.Values)
             {
-                // 리스트를 뒤에서부터 순회하여 GC 할당 없이 안전하게 제거
-                for (int i = statModifiers.Count - 1; i >= 0; i--)
+                if (stat.RemoveModifiersFromSource(source))
                 {
-                    if (statModifiers[i].Source == source)
-                    {
-                        statModifiers.RemoveAt(i);
-                        removedAny = true;
-                    }
+                    removedAny = true;
                 }
             }
 
-            if (removedAny)
+            if(removedAny)
             {
-                _isDirty = true;
-                GameLogger.Log($"Removed all StatModifiers from source: {source}");
+                GameLogger.Log($"Removed all modifiers from source: {source}");
             }
-        }
-        
-        private void CalculateAllFinalStats()
-        {
-            foreach (StatType statType in AllStatTypes)
-            {
-                _finalStats[statType] = CalculateFinalStat(statType);
-            }
-            GameLogger.Log("All final stats have been recalculated.");
-        }
-
-        private int CalculateFinalStat(StatType statType)
-        {
-            // 정렬이 필요한 경우에만 정렬을 수행하여 불필요한 연산을 줄입니다.
-            if (_sortRequired.TryGetValue(statType, out bool needsSort) && needsSort)
-            {
-                _statModifiers[statType].Sort((a, b) => a.Type.CompareTo(b.Type));
-                _sortRequired[statType] = false;
-            }
-
-            int finalValue = 0;
-            int percentAddSum = 0;
-            var modifiers = _statModifiers[statType];
-
-            // 1. Flat 합산 및 PercentAdd 총합 계산
-            for (int i = 0; i < modifiers.Count; i++)
-            {
-                var mod = modifiers[i];
-                if (mod.Type == StatModType.Flat)
-                {
-                    finalValue += mod.Value;
-                }
-                else if (mod.Type == StatModType.PercentAdd)
-                {
-                    percentAddSum += mod.Value;
-                }
-            }
-
-            // 2. PercentAdd 적용 (모든 Flat 합산 값에 대해)
-            if (percentAddSum > 0)
-            {
-                // 1000을 곱한 정수이므로 1000f로 나누어 비율로 만듭니다.
-                finalValue += Mathf.RoundToInt(finalValue * (percentAddSum / 1000f));
-            }
-
-            // 3. PercentMult 순차 적용
-            for (int i = 0; i < modifiers.Count; i++)
-            {
-                var mod = modifiers[i];
-                if (mod.Type == StatModType.PercentMult)
-                {
-                    finalValue = Mathf.RoundToInt(finalValue * (1 + mod.Value / 1000f));
-                }
-            }
-
-            return finalValue;
         }
     }
 }
