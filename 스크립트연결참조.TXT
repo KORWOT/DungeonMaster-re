@@ -18,15 +18,21 @@
 - **위치**: `Assets/Scripts/Core/ITickListener.cs`
 
 ### `Core.Logging` (로깅 시스템)
-- **역할**: 게임 전역의 로그를 중앙에서 관리하고, 일관된 형식으로 출력. 확장성을 위해 인터페이스 기반으로 설계됨.
-- **주요 클래스 및 인터페이스**:
-    - `GameLogger`: 로그 기록을 위한 정적 클래스. 게임의 모든 곳에서 `GameLogger.Log()` 형태로 호출.
-    - `ILogger`: 로그 출력 방식(콘솔, 파일 등)을 정의하는 인터페이스.
-    - `UnityConsoleLogger`: `ILogger`를 구현하여 유니티 콘솔에 로그를 출력하는 기본 로거.
-- **사용법**:
-    - 일반 로그: `GameLogger.Log("메시지");`
-    - 경고 로그: `GameLogger.LogWarning("메시지");`
-    - 에러 로그: `GameLogger.LogError("메시지", exception);`
+- **역할**: 게임 내 발생하는 모든 로그를 목적에 따라 분리하여 중앙에서 관리.
+- **`GameLogger` (일반 디버그 로거)**:
+    - **목적**: 개발 및 디버깅 편의성을 위한 로그 기록.
+    - **주요 특징**:
+        - **조건부 로깅**: `GameLogger.IsEnabled` 플래그로 로그 생성을 제어. (에디터 기본 활성화, 빌드 기본 비활성화)
+        - **UTC 타임스탬프**, **Null 안전성**
+    - **사용**: 일반적인 개발, 디버깅 과정에서 사용.
+- **`AntiCheatLogger` (보안 로거)**:
+    - **목적**: 핵, 치팅 등 비정상적인 플레이어 활동을 감지하고 기록하기 위한 보안 전용 로거.
+    - **주요 특징**:
+        - **조작 방지**: `readonly`와 정적 생성자를 통해 런타임 상태 변경 방지.
+        - **항시 활성화**: 릴리즈 빌드를 포함하여 항상 활성화 상태를 유지.
+        - **목적 기반 메서드**: `LogSuspiciousActivity`, `LogCheatDetected` 등 명확한 목적의 로깅 메서드 제공.
+- **공통 인터페이스**:
+    - `ILogger`, `UnityConsoleLogger`
 - **위치**: `Assets/Scripts/Core/Logging/`
 
 ## 2. 캐릭터 시스템 (Character Systems)
@@ -46,7 +52,8 @@
 - **역할**: 캐릭터의 모든 스탯(기본 스탯, 버프/디버프로 인한 변화량 등)을 종합하여 최종 스탯을 관리하고 계산.
 - **주요 기능**:
     - `GetStat(StatType type)`: 특정 스탯의 최종 값을 조회.
+    - `AddModifier()`, `RemoveModifiersFromSource()`: 스탯 변화를 동적으로 추가/제거.
 - **연결**:
     - `StatType` enum을 사용하여 스탯을 구분.
-    - `StatModifier` 구조체를 사용하여 스탯 변화량을 관리.
+    - `StatModifier` 클래스를 사용하여 스탯 변화량을 관리.
 - **위치**: `Assets/Scripts/CharacterStats.cs`
