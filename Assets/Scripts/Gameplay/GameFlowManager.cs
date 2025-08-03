@@ -7,7 +7,7 @@ using DungeonMaster.Systems;
 using DungeonMaster.Systems.Rewards;
 using UnityEngine;
 
-namespace DungeonMaster.Game
+namespace DungeonMaster.Gameplay
 {
     /// <summary>
     /// 게임의 전체적인 흐름과 상태를 관리하는 싱글톤 클래스입니다.
