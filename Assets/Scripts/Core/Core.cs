@@ -76,5 +76,15 @@ namespace Core
                 Debug.Log($"서비스 등록 해제됨: {type.Name}");
             }
         }
+        
+        /// <summary>
+        /// 등록된 모든 서비스를 초기화합니다.
+        /// 씬 전환이나 테스트 환경 초기화 시 사용됩니다.
+        /// </summary>
+        public void Reset()
+        {
+            _services.Clear();
+            Debug.Log("Core: 모든 서비스가 초기화되었습니다.");
+        }
     }
 }
