@@ -5,8 +5,8 @@ namespace DungeonMaster.Data
     /// <summary>
     /// 한 웨이브에 등장하는 적의 구성과 스폰 설정을 정의하는 ScriptableObject입니다.
     /// </summary>
-    [CreateAssetMenu(fileName = "New WaveDataData", menuName = "Data/Wave Data")]
-    public class WaveDataData : ScriptableObject
+    [CreateAssetMenu(fileName = "New WaveData", menuName = "Data/Wave Data")]
+    public class WaveData : ScriptableObject
     {
         [System.Serializable]
         public struct SpawnInfo
