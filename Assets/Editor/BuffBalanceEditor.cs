@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Combat.Buffs;
+using DungeonMaster.Gameplay.Combat;
 using UnityEditor;
 using UnityEngine;
 
@@ -9,7 +9,7 @@ namespace Balance.Editor
     /// <summary>
     /// Buff 데이터 밸런싱을 위한 에디터 윈도우입니다.
     /// </summary>
-    public class BuffBalanceEditor : BalanceEditorWindow<Buff>
+    public class BuffBalanceEditor : BalanceEditorWindow<BuffData>
     {
         // 필터링을 위한 변수
         private bool _showAllStackingTypes = true;
@@ -65,7 +65,7 @@ namespace Balance.Editor
         /// <summary>
         /// 선택된 StackingType에 따라 리스트를 필터링합니다.
         /// </summary>
-        protected override IEnumerable<Buff> ApplyAdvancedFilters(IEnumerable<Buff> items)
+        protected override IEnumerable<BuffData> ApplyAdvancedFilters(IEnumerable<BuffData> items)
         {
             if (_showAllStackingTypes)
             {
@@ -122,9 +122,9 @@ namespace Balance.Editor
         /// <summary>
         /// 각 Buff 데이터의 행을 그립니다.
         /// </summary>
-        protected override void DrawRow(Buff buff)
+        protected override void DrawRow(BuffData buff)
         {
-            EditorGUILayout.ObjectField(buff, typeof(Buff), false, GUILayout.Width(150));
+            EditorGUILayout.ObjectField(buff, typeof(BuffData), false, GUILayout.Width(150));
             buff.BuffId = EditorGUILayout.TextField(buff.BuffId, GUILayout.Width(150));
             buff.Duration = EditorGUILayout.FloatField(buff.Duration, GUILayout.Width(70));
             buff.StackingType = (BuffStackingType)EditorGUILayout.EnumPopup(buff.StackingType, GUILayout.Width(120));
@@ -133,7 +133,7 @@ namespace Balance.Editor
         /// <summary>
         /// 정렬 키에 따라 Buff 리스트를 정렬하는 로직을 제공합니다.
         /// </summary>
-        protected override IOrderedEnumerable<Buff> GetSorted(IEnumerable<Buff> items)
+        protected override IOrderedEnumerable<BuffData> GetSorted(IEnumerable<BuffData> items)
         {
             switch (_currentSortKey)
             {
