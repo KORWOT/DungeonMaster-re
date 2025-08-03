@@ -1,11 +1,11 @@
-using DungeonMaster.Data.Enums;
+using DungeonMaster.Data.Structs;
 
 namespace DungeonMaster.Core.Interfaces
 {
     public interface IScoreManager
     {
         int TotalScore { get; }
-        void AddScore(EnemyType enemyType);
+        void AddScore(EnemyScoreInfo enemyInfo);
         void ResetScore();
     }
 }
