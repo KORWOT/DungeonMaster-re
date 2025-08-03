@@ -2,7 +2,7 @@ using DungeonMaster.Core.Interfaces;
 using DungeonMaster.Core.Logging;
 using DungeonMaster.Data;
 using DungeonMaster.Data.Enums;
-using DungeonMaster.Gameplay.Actors;
+using DungeonMaster.Data.Structs;
 
 namespace DungeonMaster.Systems.Rewards
 {
@@ -33,21 +33,13 @@ namespace DungeonMaster.Systems.Rewards
             }
         }
         
-        public void AddScore(EnemyType enemyType)
-        {
-             // 이 메서드는 외부(GameFlowManager)에서 EnemyInfo를 받아 처리하도록 변경될 것입니다.
-             // 현재는 인터페이스와의 호환성을 위해 시그니처만 유지합니다.
-            throw new System.NotImplementedException("AddScore(EnemyInfo)를 사용해주세요.");
-        }
-
-
         /// <summary>
         /// 처치한 적의 정보를 바탕으로 점수를 계산하고 총 점수에 더합니다.
         /// </summary>
-        /// <param name="enemyInfo">처치한 적의 EnemyInfo 컴포넌트</param>
-        public void AddScore(EnemyInfo enemyInfo)
+        /// <param name="enemyInfo">처치한 적의 점수 정보</param>
+        public void AddScore(EnemyScoreInfo enemyInfo)
         {
-            if (enemyInfo == null || _rewardTable == null) return;
+            if (_rewardTable == null) return;
 
             float score = enemyInfo.BaseScore;
 
@@ -72,8 +64,8 @@ namespace DungeonMaster.Systems.Rewards
             
             int finalScore = UnityEngine.Mathf.RoundToInt(score);
             TotalScore += finalScore;
-            
-            GameLogger.Log($"적 처치! {enemyInfo.name} ({enemyInfo.EnemyType}) | 획득 점수: {finalScore} | 총 점수: {TotalScore}");
+
+            GameLogger.Log($"적 처치! {enemyInfo.Name} ({enemyInfo.EnemyType}) | 획득 점수: {finalScore} | 총 점수: {TotalScore}");
         }
 
         /// <summary>
