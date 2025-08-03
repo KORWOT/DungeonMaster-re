@@ -22,7 +22,7 @@ namespace DungeonMaster.Gameplay.Dungeon
         /// 주어진 웨이브 목록에 따라 순차적으로 적 스폰을 시작합니다.
         /// </summary>
         /// <param name="waves">스폰할 웨이브 데이터 목록</param>
-        public void StartSpawning(List<WaveDataData> waves)
+        public void StartSpawning(List<WaveData> waves)
         {
             if (_spawnCoroutine != null)
             {
@@ -43,7 +43,7 @@ namespace DungeonMaster.Gameplay.Dungeon
             }
         }
 
-        private IEnumerator SpawnWavesRoutine(List<WaveDataData> waves)
+        private IEnumerator SpawnWavesRoutine(List<WaveData> waves)
         {
             foreach (var waveData in waves)
             {
@@ -53,7 +53,7 @@ namespace DungeonMaster.Gameplay.Dungeon
             Debug.Log("모든 웨이브가 종료되었습니다.");
         }
 
-        private IEnumerator SpawnSingleWaveRoutine(WaveDataData waveData)
+        private IEnumerator SpawnSingleWaveRoutine(WaveData waveData)
         {
             Debug.Log($"웨이브 시작: {waveData.name}");
             foreach (var spawnInfo in waveData.SpawnList)
