@@ -2,9 +2,7 @@
     "name": "DungeonMaster.Core",
     "rootNamespace": "DungeonMaster.Core",
     "references": [
-        "GUID:27d509ea90a5443ea21efe3de268a1fd",
-        "GUID:a9cba654ebae4cb7ae008d2b1e2434ad",
-        "GUID:8bad97eac4b94b89ae1c905ea1fc71c6"
+        "GUID:27d509ea90a5443ea21efe3de268a1fd"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
