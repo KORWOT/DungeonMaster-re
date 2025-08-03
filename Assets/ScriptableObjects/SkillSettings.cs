@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 스킬의 레벨별 효과 및 데이터를 정의하는 ScriptableObject입니다.

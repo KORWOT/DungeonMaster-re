@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using Character;
+using DungeonMaster.Data;
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 게임의 핵심 설정을 관리하는 ScriptableObject입니다.

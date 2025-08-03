@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 게임의 모든 핵심 밸런스 설정 ScriptableObject들을 중앙에서 관리하고 참조하는 허브 역할을 합니다.

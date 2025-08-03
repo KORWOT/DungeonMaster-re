@@ -1,7 +1,7 @@
 using DungeonMaster.Data.Enums;
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 속성 간의 상성 관계 및 효과를 정의하는 ScriptableObject입니다.

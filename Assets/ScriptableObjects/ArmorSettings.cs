@@ -1,7 +1,7 @@
 using DungeonMaster.Data.Enums;
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 방어구 타입별 효과(보호율, 공격속도 변화 등)를 정의하는 ScriptableObject입니다.

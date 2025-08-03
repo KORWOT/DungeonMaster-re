@@ -1,7 +1,7 @@
 using DungeonMaster.Data.Enums;
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 성장률 등급(F~S)별 실제 성장률 수치 범위를 정의하는 ScriptableObject입니다.
