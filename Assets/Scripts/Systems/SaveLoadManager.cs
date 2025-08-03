@@ -3,10 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using DungeonMaster.Core.Logging;
 using DungeonMaster.Data;
-using DungeonMaster.Core.Interfaces;
 using UnityEngine;
 
-namespace DungeonMaster.Core
+namespace DungeonMaster.Systems
 {
     /// <summary>
     /// 게임 데이터의 저장 및 로드를 담당하는 클래스입니다.

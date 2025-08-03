@@ -1,6 +1,6 @@
 using DungeonMaster.Data;
 
-namespace DungeonMaster.Core.Interfaces
+namespace DungeonMaster.Systems
 {
     public interface ISaveLoadManager
     {
