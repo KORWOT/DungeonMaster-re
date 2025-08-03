@@ -1,178 +1,101 @@
 # 스크립트 연결 참조 (전체)
-# 최종 업데이트: 2024-07-26
-# 이 문서는 프로젝트에 포함된 모든 주요 스크립트의 역할과 상호 연결 관계를 구체적으로 기술합니다.
+# 최종 업데이트: 2025-08-03
+# 이 문서는 프로젝트에 포함된 모든 주요 스크립트의 역할과 상호 연결 관계를 새로운 폴더 및 네임스페이스 구조에 따라 기술합니다.
 
 ---
-## 1. 관리자 시스템 (Managers) & 핵심 시스템 (Core)
-*게임의 핵심 시스템과 서비스 로케이터 패턴을 기술합니다.*
+## 1. 폴더 및 네임스페이스 규칙
 
-### `Core.Core` (서비스 로케이터)
-- **역할**: 게임의 모든 핵심 서비스(매니저)를 인터페이스 기반으로 등록하고 제공하는 중앙 허브. 싱글톤으로 구현되어 어디서든 서비스에 접근할 수 있게 합니다.
-- **위치**: `Assets/Scripts/Core/Core.cs`
-- **참조하는 스크립트**: (없음 - 모든 서비스가 자신을 등록)
-- **참조되는 스크립트**: 게임 내에서 특정 서비스(예: `ISaveLoadManager`)가 필요한 모든 스크립트.
-
-### `Managers.GameFlowManager`
-- **역할**: 게임의 전체적인 상태(Lobby, Placement, Combat, Result)를 관리하고, `Core`에 등록될 핵심 서비스들의 생명주기(생성, 초기화)를 관리하는 최고 관리자.
-- **위치**: `Assets/Scripts/Managers/GameFlowManager.cs`
-- **참조하는 스크립트**:
-    - (인스펙터) `DungeonGrid`, `MonsterPlacementManager`, `CharacterFactory`, `EnemySpawner`
-    - (Resources) `RewardTable`
-    - (서비스 로케이터) `Core.Core`를 통해 `ISaveLoadManager`, `IRewardManager`, `IScoreManager` 등의 서비스 사용
-    - (데이터) `PlayerData`
-- **참조되는 스크립트**: (없음 - 싱글톤 Instance를 통해 외부에서 접근)
-
-### `Managers.ScoreManager`
-- **역할**: 적 처치 시 점수를 계산하고, 게임 내 총 점수를 관리. `IScoreManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
-- **위치**: `Assets/Scripts/Managers/ScoreManager.cs`
-- **참조하는 스크립트**: `RewardTable`, `EnemyInfo`
-- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `IScoreManager` 인터페이스로 참조함.
-
-### `Managers.RewardManager`
-- **역할**: 최종 점수를 받아, `RewardTable`에 정의된 규칙에 따라 보상을 지급. `IRewardManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
-- **위치**: `Assets/Scripts/Managers/RewardManager.cs`
-- **참조하는 스크립트**: `RewardTable`, `PlayerData`
-- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `IRewardManager` 인터페이스로 참조함.
-
-### `Managers.SaveLoadManager`
-- **역할**: `PlayerData`를 암호화하여 파일에 저장/로드. `ISaveLoadManager` 인터페이스를 구현하며, `Core`에 서비스로 등록됨.
-- **위치**: `Assets/Scripts/Managers/SaveLoadManager.cs`
-- **참조하는 스크립트**: `PlayerData`
-- **참조되는 스크립트**: 클라이언트는 `Core`를 통해 `ISaveLoadManager` 인터페이스로 참조함.
+- **최상위 폴더**: `Assets/1. Scripts`
+- **네임스페이스**: `DungeonMaster.{카테고리}.{하위카테고리}` 형식을 따릅니다.
+- **데이터 클래스**: ScriptableObject의 기반이 되는 C# 클래스는 `Data` 접미사를 가집니다 (예: `RewardTableData.cs`).
 
 ---
-## 2. 핵심 시스템 (Core)
-*게임의 가장 기본적인 기능(시간, 틱, 로그)을 제공하는 시스템입니다.*
+## 2. Core (DungeonMaster.Core)
+*게임의 핵심 생명주기, 서비스 로케이터, 기본 인터페이스를 담당합니다.*
 
-### `Core.Ticks.TickManager`
-- **역할**: 게임의 시간 단위인 '틱'을 일정한 간격으로 발생시키는 중앙 시계.
-- **위치**: `Assets/Scripts/Core/TickManager.cs`
-- **참조하는 스크립트**: `ITickListener`
-- **참조되는 스크립트**: `ITickListener`를 구현하는 모든 클래스.
+### `Core.Core`
+- **역할**: 게임의 모든 핵심 서비스(매니저)를 인터페이스 기반으로 등록하고 제공하는 중앙 허브.
+- **위치**: `Assets/1. Scripts/Core/Core.cs`
+- **네임스페이스**: `DungeonMaster.Core`
 
-### `Core.Ticks.ITickListener`
-- **역할**: `TickManager`로부터 틱 이벤트를 수신하기 위한 인터페이스.
-- **위치**: `Assets/Scripts/Core/ITickListener.cs`
-- **참조되는 스크립트**: `TickManager`.
+### `Core.GameFlowManager`
+- **역할**: 게임의 전체 상태(Lobby, Placement, Combat, Result)를 관리하고, 핵심 서비스들의 생명주기를 관리하는 최고 관리자.
+- **위치**: `Assets/1. Scripts/Core/GameFlowManager.cs`
+- **네임스페이스**: `DungeonMaster.Core`
+- **참조**: `ISaveLoadManager`, `IRewardManager`, `IScoreManager`, `DungeonGrid`, `MonsterPlacementManager`, `EnemySpawner`, `RewardTableData` 등 다수
 
-### `Core.Time.GameTimeManager`
-- **역할**: 게임의 실제 시간(배속, 일시정지 포함)을 관리. `Time.deltaTime`의 대안.
-- **위치**: `Assets/Scripts/Core/Time/GameTimeManager.cs`
-- **참조되는 스크립트**: `BuffController`
+### `Core.SaveLoadManager`
+- **역할**: `PlayerData`를 암호화하여 파일에 저장/로드.
+- **위치**: `Assets/1. Scripts/Core/SaveLoadManager.cs`
+- **네임스페이스**: `DungeonMaster.Core`
+- **구현 인터페이스**: `ISaveLoadManager`
 
-### `Core.Logging.*`
-- **역할**: `GameLogger`를 통해 디버깅 및 보안 로그를 기록하는 시스템.
-- **위치**: `Assets/Scripts/Core/Logging/`
-- **참조되는 스크립트**: 게임 내 거의 모든 스크립트.
-
----
-## 3. 전투 및 캐릭터 시스템 (Combat & Character)
-
-### `CharacterStats`
-- **역할**: 캐릭터의 모든 스탯을 담는 컨테이너 역할을 합니다. 각 스탯의 실제 계산은 `CharacterStat` 클래스에 위임됩니다.
-- **위치**: `Assets/Scripts/CharacterStats.cs`
-- **참조하는 스크립트**: `Character.CharacterStat`, `StatType`
-- **참조되는 스크립트**: `BuffController`, `CharacterFactory`
-
-### `Character.CharacterStat`
-- **역할**: 단일 스탯의 기본 값과 모디파이어 리스트를 관리하고, 최종 값을 계산합니다. '스탯 모디파이어' 패턴의 핵심 구현체입니다.
-- **위치**: `Assets/Scripts/Character/CharacterStat.cs`
-- **참조하는 스크립트**: `Data.StatModifier`, `Data.Enums.StatType`, `Data.Enums.StatModType`
-- **참조되는 스크립트**: `CharacterStats`
-
-### `Combat.EnemyInfo`
-- **역할**: 모든 적 프리팹에 부착되어, 해당 적의 종류와 기본 처치 점수를 저장.
-- **위치**: `Assets/Scripts/Combat/EnemyInfo.cs`
-- **참조하는 스크립트**: `EnemyType`
-- **참조되는 스크립트**: `ScoreManager`
-
-### `Combat.Buffs.BuffController`
-- **역할**: 캐릭터에 적용된 버프/디버프의 생명주기를 관리.
-- **위치**: `Assets/Scripts/Combat/BuffController.cs`
-- **참조하는 스크립트**: `Buff`, `CharacterStats`, `GameTimeManager`
-- **참조되는 스크립트**: `CharacterFactory`
-
-### `Combat.DemonLordSkillManager`
-- **역할**: 마왕의 액티브 스킬 사용 및 쿨다운을 관리.
-- **위치**: `Assets/Scripts/Combat/DemonLordSkillManager.cs`
-- **참조하는 스크립트**: `UniqueSkillData`
-
-### `Combat.EnemySpawner`
-- **역할**: `WaveData`를 기반으로 적 유닛을 생성하고 던전 입구에 배치.
-- **위치**: `Assets/Scripts/Combat/EnemySpawner.cs`
-- **참조하는 스크립트**: `WaveData`, `DungeonGrid`
-- **참조되는 스크립트**: `GameFlowManager`.
-
-### `Combat.GridMovementController`
-- **역할**: 그리드 환경에서 유닛의 이동을 담당.
-- **위치**: `Assets/Scripts/Combat/GridMovementController.cs`
+### `Core.Interfaces.*`
+- **역할**: 서비스 로케이터를 통해 제공될 서비스들의 인터페이스(`ISaveLoadManager`, `IRewardManager`, `IScoreManager`)를 정의.
+- **위치**: `Assets/1. Scripts/Core/Interfaces/`
+- **네임스페이스**: `DungeonMaster.Core.Interfaces`
 
 ---
-## 4. 데이터 및 설정 (Data & Settings)
+## 3. Data (DungeonMaster.Data)
+*게임에 사용되는 모든 데이터 구조와 ScriptableObject 기반 클래스를 정의합니다.*
 
 ### `Data.PlayerData`
-- **역할**: 플레이어의 영구 데이터를 정의하는 최상위 클래스.
-- **위치**: `Assets/Scripts/Data/PlayerData.cs`
-- **참조되는 스크립트**: `SaveLoadManager`, `RewardManager`, `GameFlowManager`.
+- **역할**: 플레이어의 영구 데이터를 정의하는 최상위 클래스. 저장/로드의 대상.
+- **위치**: `Assets/1. Scripts/Data/PlayerData.cs`
+- **네임스페이스**: `DungeonMaster.Data`
 
-### `Data.BaseMonsterCard` & `Data.Structs.*`
-- **역할**: 몬스터 카드의 영구 데이터와 그 하위 데이터(성장률, 스킬 등)를 정의.
-- **위치**: `Assets/Scripts/Data/BaseMonsterCard.cs`, `Assets/Scripts/Data/Structs/`
-- **참조되는 스크립트**: `PlayerData`, `MonsterPlacementManager`, `CharacterFactory`.
-
-### `Data.RewardTable`
-- **역할**: 점수 기반 보상 시스템의 모든 규칙을 정의하는 `ScriptableObject`.
-- **위치**: `Assets/Scripts/Data/RewardTable.cs`
-- **참조되는 스크립트**: `GameFlowManager`, `ScoreManager`, `RewardManager`.
-
-### `Data.WaveData`
-- **역할**: 한 웨이브에 등장하는 적의 구성을 정의하는 `ScriptableObject`.
-- **위치**: `Assets/Scripts/Data/WaveData.cs`
-- **참조되는 스크립트**: `EnemySpawner`.
-
-### `Combat.Buffs.Buff`
-- **역할**: 버프/디버프의 데이터 원형을 정의하는 `ScriptableObject`.
-- **위치**: `Assets/Scripts/Combat/Buff.cs`
-- **참조되는 스크립트**: `BuffController`.
+### `Data.*Data.cs` (예: `RewardTableData.cs`, `WaveDataData.cs`, `BuffData.cs`)
+- **역할**: 게임의 각종 시스템에서 사용하는 데이터의 원형을 정의하는 `ScriptableObject` 기반 클래스들.
+- **위치**: `Assets/1. Scripts/Data/` 또는 `Assets/1. Scripts/Gameplay/Combat/` 등
+- **네임스페이스**: `DungeonMaster.Data` 또는 `DungeonMaster.Gameplay.Combat` 등
 
 ### `Data.Enums.*`
-- **역할**: 게임 전반에서 사용되는 모든 열거형(`StatType`, `CardGrade`, `EnemyType` 등)을 정의.
-- **위치**: `Assets/Scripts/Data/Enums/`
-- **참조되는 스크립트**: 게임 내 다수의 스크립트.
+- **역할**: 게임 전반에서 사용되는 모든 열거형(`StatType`, `CardGrade` 등)을 정의.
+- **위치**: `Assets/1. Scripts/Data/Enums/`
+- **네임스페이스**: `DungeonMaster.Data.Enums`
 
-### `Settings.*`
-- **역할**: `CardBalanceSettings`를 중심으로, 게임의 모든 밸런스(속성, 방어구 등)를 정의하는 `ScriptableObject` 에셋들.
-- **위치**: `Assets/Settings/`
-- **참조되는 스크립트**: `CharacterFactory`, 각종 `Calculator` 클래스들.
-
----
-## 5. 던전 및 공장 (Dungeon & Factories)
-
-### `Dungeon.DungeonGrid`
-- **역할**: 던전의 3x3 그리드 구조와 상태를 관리.
-- **위치**: `Assets/Scripts/Dungeon/DungeonGrid.cs`
-- **참조되는 스크립트**: `GameFlowManager`, `MonsterPlacementManager`, `EnemySpawner`.
-
-### `Dungeon.MonsterPlacementManager`
-- **역할**: 전투 시작 전, 몬스터를 던전 그리드에 배치하는 과정을 관리.
-- **위치**: `Assets/Scripts/Dungeon/MonsterPlacementManager.cs`
-- **참조하는 스크립트**: `DungeonGrid`, `BaseMonsterCard`
-- **참조되는 스크립트**: `GameFlowManager`.
-
-### `Factories.CharacterFactory`
-- **역할**: `BaseMonsterCard`와 `CardBalanceSettings`를 기반으로 실제 인게임 `GameObject`를 생성하고 `CharacterStats` 등의 컴포넌트를 초기화.
-- **위치**: `Assets/Scripts/Factories/CharacterFactory.cs`
-- **참조하는 스크립트**: `BaseMonsterCard`, `CardBalanceSettings`, `CharacterStats`
-- **참조되는 스크립트**: `GameFlowManager`.
+### `Data.Structs.*`
+- **역할**: 여러 곳에서 사용되는 복합 데이터 구조체(`GrowthRateData`, `CriticalData` 등)를 정의.
+- **위치**: `Assets/1. Scripts/Data/Structs/`
+- **네임스페이스**: `DungeonMaster.Data.Structs`
 
 ---
-## 6. 전투 계산 및 성장 시스템 (Calculators & Growth)
-*이 클래스들은 아직 생성되지 않았지만, 계획에 따라 기록합니다.*
+## 4. Gameplay (DungeonMaster.Gameplay)
+*인스턴스(게임 한 판) 내에서 발생하는 실제 게임 플레이 로직을 담당합니다.*
 
-### `Combat.Calculators.*`
-- **역할**: 속성, 방어구, 치명타 등 복잡한 전투 계산을 담당하는 정적 유틸리티 클래스.
-- **참조하는 스크립트**: `Settings`의 관련 `ScriptableObject`.
+### `Gameplay.Actors.*`
+- **역할**: 유닛(몬스터, 마왕)의 스탯, 이동, 스킬 사용 등 행위 주체와 관련된 모든 로직.
+- **위치**: `Assets/1. Scripts/Gameplay/Actors/`
+- **네임스페이스**: `DungeonMaster.Gameplay.Actors`
+- **주요 클래스**: `CharacterStats`, `CharacterStat`, `DemonLordSkillManager`, `GridMovementController`, `EnemyInfo`
 
-### `Combat.Growth.*`
-- **역할**: `LevelUpProcessor`, `BaseCardUpgradeManager` 등 카드의 성장 및 강화 로직을 담당.
-- **참조하는 스크립트**: `Data.BaseMonsterCard`, `Settings`의 관련 `ScriptableObject`.
+### `Gameplay.Combat.*`
+- **역할**: 데미지 계산, 버프/디버프 적용 등 전투 규칙과 상호작용을 구현.
+- **위치**: `Assets/1. Scripts/Gameplay/Combat/`
+- **네임스페이스**: `DungeonMaster.Gameplay.Combat`
+- **주요 클래스**: `BuffController`, `BuffData`
+
+### `Gameplay.Dungeon.*`
+- **역할**: 던전 그리드 생성, 룸 및 몬스터 배치, 웨이브 스폰 등 던전 환경 자체에 대한 로직.
+- **위치**: `Assets/1. Scripts/Gameplay/Dungeon/`
+- **네임스페이스**: `DungeonMaster.Gameplay.Dungeon`
+- **주요 클래스**: `DungeonGrid`, `MonsterPlacementManager`, `EnemySpawner`
+
+---
+## 5. Systems (DungeonMaster.Systems)
+*메타 게임 및 게임의 배경에서 동작하는 시스템들을 담당합니다.*
+
+### `Systems.Progression.*`
+- **역할**: 영구 성장(레벨업, 카드 강화)과 관련된 로직을 처리.
+- **위치**: `Assets/1. Scripts/Systems/Progression/`
+- **네임스페이스**: `DungeonMaster.Systems.Progression`
+- **주요 클래스**: `LevelUpProcessor`, `GrowthRateManager`
+
+### `Systems.Rewards.*`
+- **역할**: 점수 계산 및 전투 종료 후 보상 지급 로직을 처리.
+- **위치**: `Assets/1. Scripts/Systems/Rewards/`
+- **네임스페이스**: `DungeonMaster.Systems.Rewards`
+- **주요 클래스**: `ScoreManager`, `RewardManager`
+
+---
+*참고: `UI`, `Utilities`, 기타 `Systems` 하위 카테고리 스크립트들은 아직 생성되지 않았습니다.*
