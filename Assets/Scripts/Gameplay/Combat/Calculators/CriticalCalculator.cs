@@ -1,5 +1,5 @@
 using DungeonMaster.Data.Enums;
-using Settings;
+using DungeonMaster.Settings;
 using UnityEngine;
 
 namespace DungeonMaster.Gameplay.Combat.Calculators

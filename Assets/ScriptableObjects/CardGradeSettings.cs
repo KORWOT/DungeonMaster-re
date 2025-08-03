@@ -1,7 +1,7 @@
 using DungeonMaster.Data.Enums;
 using UnityEngine;
 
-namespace Settings
+namespace DungeonMaster.Settings
 {
     /// <summary>
     /// 카드 등급(C~UR)별 기본 스탯을 정의하는 ScriptableObject입니다.
