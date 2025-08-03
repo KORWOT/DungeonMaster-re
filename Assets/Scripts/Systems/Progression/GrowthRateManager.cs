@@ -1,6 +1,6 @@
 using DungeonMaster.Data;
 using DungeonMaster.Data.Enums;
-using DungeonMaster.Data.Settings;
+using DungeonMaster.Settings;
 using UnityEngine;
 
 namespace DungeonMaster.Systems.Progression
@@ -24,11 +24,11 @@ namespace DungeonMaster.Systems.Progression
         /// <param name="growthRate">성장률 수치</param>
         /// <param name="settings">성장률 등급 설정 파일</param>
         /// <returns>결정된 성장률 등급</returns>
-        public GrowthGrade DetermineGrade(float growthRate, GrowthRateSettingsData settings)
+        public GrowthGrade DetermineGrade(float growthRate, GrowthRateSettings settings)
         {
             if (settings == null)
             {
-                Debug.LogError("GrowthRateSettingsData가 제공되지 않았습니다.");
+                Debug.LogError("GrowthRateSettings가 제공되지 않았습니다.");
                 return GrowthGrade.F;
             }
             return settings.DetermineGrade(growthRate);
@@ -48,7 +48,7 @@ namespace DungeonMaster.Systems.Progression
         /// <summary>
         /// 성장률 수치가 유효한 범위 내에 있는지 확인합니다. (구현 필요)
         /// </summary>
-        public bool IsValidGrowthRate(float rate, GrowthRateSettingsData settings)
+        public bool IsValidGrowthRate(float rate, GrowthRateSettings settings)
         {
             // TODO: 설정 파일에 정의된 전체 min/max 범위를 벗어나는지 확인하는 로직.
             return true;
