@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Core.Logging
+namespace DungeonMaster.Core.Logging
 {
     /// <summary>
     /// 로그 출력을 위한 공통 인터페이스입니다.

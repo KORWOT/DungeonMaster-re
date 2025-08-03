@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using Core.Logging;
+using DungeonMaster.Core.Logging;
 using UnityEngine;
 
-namespace Core.Ticks
+namespace DungeonMaster.Core.Ticks
 {
     /// <summary>
     /// 게임의 전반적인 틱(시간 단위)을 관리하는 싱글턴 클래스입니다.

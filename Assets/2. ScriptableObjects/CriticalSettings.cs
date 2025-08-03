@@ -1,4 +1,4 @@
-using Data.Enums;
+using DungeonMaster.Data.Enums;
 using UnityEngine;
 
 namespace Settings
