@@ -1,8 +1,8 @@
-using Data.Enums;
+using DungeonMaster.Data.Enums;
 using Settings;
 using UnityEngine;
 
-namespace Combat.Calculators
+namespace DungeonMaster.Gameplay.Combat.Calculators
 {
     /// <summary>
     /// 치명타 관련 계산을 담당하는 static 클래스입니다.

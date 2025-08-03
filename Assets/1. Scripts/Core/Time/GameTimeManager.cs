@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Core.Time
+namespace DungeonMaster.Core.Time
 {
     /// <summary>
     /// 게임의 전반적인 시간 흐름을 관리하는 싱글턴 클래스입니다.
@@ -52,7 +52,7 @@ namespace Core.Time
         {
             if (IsPaused) return;
             IsPaused = true;
-            Core.Logging.GameLogger.Log("Game Paused.");
+            DungeonMaster.Core.Logging.GameLogger.Log("Game Paused.");
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace Core.Time
         {
             if (!IsPaused) return;
             IsPaused = false;
-            Core.Logging.GameLogger.Log("Game Resumed.");
+            DungeonMaster.Core.Logging.GameLogger.Log("Game Resumed.");
         }
 
         /// <summary>

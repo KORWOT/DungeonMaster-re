@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Core.Logging
+namespace DungeonMaster.Core.Logging
 {
     /// <summary>
     /// ILogger 인터페이스의 구현체로, Unity 에디터 콘솔에 로그를 출력합니다.

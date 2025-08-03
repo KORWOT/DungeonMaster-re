@@ -5,7 +5,7 @@ using UnityEngine;
 // using System.Collections.Generic;  // TODO: 향후 큐 관리 시 사용
 // using System.IO;        // TODO: 향후 로컬 파일 저장 시 사용
 
-namespace Core.Logging
+namespace DungeonMaster.Core.Logging
 {
     /// <summary>
     /// 핵 의심 유저 검증용 보안 로거 - 외부 조작 방지

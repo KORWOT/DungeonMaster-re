@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Core.Logging
+namespace DungeonMaster.Core.Logging
 {
     /// <summary>
     /// 게임 전역에서 사용할 정적 로깅 클래스입니다.
